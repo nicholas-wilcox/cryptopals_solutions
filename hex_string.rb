@@ -17,14 +17,14 @@ class HexString < String
   end
 
   def ^(other)
-    return HexString.new(chars.map.with_index.each { |c, i| (c.hex ^ other[i].hex).to_s(16) }.join())
+    return HexString.new(chars.map.with_index { |c, i| (c.hex ^ other[i].hex).to_s(16) }.join())
   end
 
   def to_ascii
     return octets.map { |n| format("%c", n) }.join()
   end
 
-  def xor(c)
+  def xor_against_char(c)
     return HexString.new(octets.map { |n| n ^ c.ord }.map { |n| n.to_s(16) }.join())
   end
 
