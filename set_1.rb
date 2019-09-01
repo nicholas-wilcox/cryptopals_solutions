@@ -1,5 +1,6 @@
 require_relative "hex_string"
 require_relative "frequency"
+require_relative "vigenere"
 
 module Set_1
   module_function
@@ -23,6 +24,11 @@ module Set_1
   def challenge4(filename)
     min_english_score = proc { |s| (0...256).each.map { |c| Frequency.english_score(HexString.new(s).xor_against_char(c).to_ascii) }.min }
     return File.new("challenge1.4.txt").each_line.map { |line| line.strip }.min { |a, b| min_english_score.call(a.strip) <=> min_english_score.call(b.strip) }
+  end
+
+  # Challenge 1.5: Implement repeating-key XOR
+  def challenge5(s, k)
+    return Vigenere.xor(s, k)
   end
 
 end
