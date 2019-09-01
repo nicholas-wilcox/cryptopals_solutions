@@ -1,13 +1,14 @@
 require_relative "hex_string"
 require_relative "frequency"
 require_relative "vigenere"
+require_relative "base64"
 
 module Set_1
   module_function
 
   # Challenge 1.1: Convert hex to base64
   def challenge1(s)
-    return HexString.new(s).to_base64
+    return Base64.encode(HexString.new(s).to_ascii)
   end
 
   # Challenge 1.2: Fixed XOR
