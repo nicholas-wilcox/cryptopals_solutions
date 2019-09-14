@@ -1,7 +1,7 @@
 module Base64
   module_function
 
-  BASE64_REF = "ABCEDFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+  BASE64_REF = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
   BASE64_PAD = ?=
 
   def encode(s)
@@ -27,6 +27,5 @@ module Base64
              (padding > 0 ? BASE64_PAD : (bits & 0xFF)))[0, 3 - padding]
     end.join
   end
-
 
 end
