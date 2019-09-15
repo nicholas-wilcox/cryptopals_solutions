@@ -37,7 +37,7 @@ module Frequency
     count = Hash.new(0)
     letters_of_s = s.downcase.chars.keep_if { |c| ENGLISH_CHARACTERS.include?(c) }
     letters_of_s.each { |c| count[c] += 1 }
-    return count.transform_values! { |v| v / letters_of_s.length.to_f }
+    return count.transform_values! { |v| v / s.length.to_f }
   end
 
   def english_score(s)
