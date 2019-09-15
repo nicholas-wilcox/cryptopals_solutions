@@ -2,6 +2,7 @@ require_relative "hex_string"
 require_relative "frequency"
 require_relative "vigenere"
 require_relative "base64"
+require_relative "string_util"
 
 module Set_1
   module_function
@@ -34,7 +35,15 @@ module Set_1
 
   # Break repeating-key XOR
   def challenge6(filename)
-    File.readlines(filename).each { |line| p HexString.from_bytes(Base64.decode(line.strip)) }
+    ciphertext = Base64.decode(File.readlines(filename).map(&:rstrip).join)
+    key_sizes = (2..40).min_by(10) do |n|
+      a = StringUtil.hamming(ciphertext[0, n], ciphertext[n, n]) / n.to_f
+      b = StringUtil.hamming(ciphertext[2*n, n], ciphertext[3*n, n]) / n.to_f
+      (a + b) / 2
+    end
+
+    return key_sizes.map { |n| Vigenere.decrypt(ciphertext, n) }
+      .min_by { |s| Frequency.english_score(s) }
   end
 
 end
