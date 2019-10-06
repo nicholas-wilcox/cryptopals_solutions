@@ -1,7 +1,8 @@
+require "openssl"
+require "base64"
 require_relative "hex_string"
 require_relative "frequency"
 require_relative "vigenere"
-require_relative "base64"
 require_relative "string_util"
 
 module Set_1
@@ -9,7 +10,7 @@ module Set_1
 
   # Challenge 1.1: Convert hex to base64
   def challenge1(s)
-    return Base64.encode(HexString.new(s).to_ascii)
+    return Base64.encode64(HexString.new(s).to_ascii)
   end
 
   # Challenge 1.2: Fixed XOR
@@ -35,7 +36,7 @@ module Set_1
 
   # Break repeating-key XOR
   def challenge6(filename)
-    ciphertext = Base64.decode(File.readlines(filename).map(&:rstrip).join)
+    ciphertext = Base64.decode64(File.readlines(filename).map(&:rstrip).join)
     key_sizes = (2..40).min_by(10) do |n|
       a = StringUtil.hamming(ciphertext[0, n], ciphertext[n, n]) / n.to_f
       b = StringUtil.hamming(ciphertext[2*n, n], ciphertext[3*n, n]) / n.to_f
@@ -44,6 +45,15 @@ module Set_1
 
     return key_sizes.map { |n| Vigenere.decrypt(ciphertext, n) }
       .min_by { |s| Frequency.english_score(s) }
+  end
+
+  def challenge7(filename, key)
+    ciphertext = Base64.decode64(File.open(filename, &:read))
+    cipher = OpenSSL::Cipher::AES.new(128, :ECB)
+    cipher.send(:decrypt)
+    cipher.key = key
+    cipher.padding = 0
+    return cipher.update(ciphertext) + cipher.final
   end
 
 end
