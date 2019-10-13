@@ -56,4 +56,12 @@ module Set_1
     return cipher.update(ciphertext) + cipher.final
   end
 
+  def challenge8(filename, block_size)
+    return File.new(filename).each_line.to_a.max_by do |line|
+      ciphertext = HexString.new(line.rstrip).to_ascii
+      blocks = (0...ciphertext.length).map { |i| ciphertext[i, block_size] }
+      blocks.map { |s| blocks.count(s) }.max
+    end
+  end
+
 end
