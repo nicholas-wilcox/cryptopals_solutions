@@ -26,6 +26,7 @@ module Set_2
     # Generate random AES key; 16 bytes
     prng = Random.new
     key = prng.bytes(16)
+    
     # Add 5-10 bytes before and 5-10 bytes after the plaintext
     prefix = prng.bytes(prng.rand(5..10))
     suffix = prng.bytes(prng.rand(5..10))
@@ -33,23 +34,21 @@ module Set_2
 
     # Randomly select between EBC and CBC
     mode = [:ECB, :CBC][prng.rand(2)]
+    
+    # Encrypt data
     cipher = OpenSSL::Cipher::AES.new(128, mode)
     cipher.send(:encrypt)
     if (mode == :CBC)
       cipher.iv = prng.bytes(16)
     end
     cipher.key = key
-    cipher.padding = 0; # Do I need padding?
-    # Encrypt data
-    ciphertex = cipher.update(input) + cipher.final
+    ciphertext = cipher.update(input) + cipher.final
+    
     # Detect which encryption mode was used (using challenge 8 code to detect ECB)
+    blocks = (0...ciphertext.length).step(16).map { |i| ciphertext[i, 16] }
+    detected_mode  = blocks.map { |s| blocks.count(s) }.max > 1 ? :ECB : :CBC
 
-
-    printf("Key: %s\n", key.bytes)
-    printf("Prefix: %s\n", prefix)
-    printf("Suffic: %s\n", suffix)
-    printf("Plaintext: %s\n", plaintext)
-
+    return { actual: mode, guess: detected_mode }
   end
 
 end
