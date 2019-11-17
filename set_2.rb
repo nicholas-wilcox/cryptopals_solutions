@@ -22,4 +22,34 @@ module Set_2
     end.join + cipher.final
   end
 
+  def challenge11(input)
+    # Generate random AES key; 16 bytes
+    prng = Random.new
+    key = prng.bytes(16)
+    # Add 5-10 bytes before and 5-10 bytes after the plaintext
+    prefix = prng.bytes(prng.rand(5..10))
+    suffix = prng.bytes(prng.rand(5..10))
+    plaintext = prefix + input + suffix
+
+    # Randomly select between EBC and CBC
+    mode = [:ECB, :CBC][prng.rand(2)]
+    cipher = OpenSSL::Cipher::AES.new(128, mode)
+    cipher.send(:encrypt)
+    if (mode == :CBC)
+      cipher.iv = prng.bytes(16)
+    end
+    cipher.key = key
+    cipher.padding = 0; # Do I need padding?
+    # Encrypt data
+    ciphertex = cipher.update(input) + cipher.final
+    # Detect which encryption mode was used (using challenge 8 code to detect ECB)
+
+
+    printf("Key: %s\n", key.bytes)
+    printf("Prefix: %s\n", prefix)
+    printf("Suffic: %s\n", suffix)
+    printf("Plaintext: %s\n", plaintext)
+
+  end
+
 end
