@@ -38,8 +38,8 @@ module Set_1
   def challenge6(filename)
     ciphertext = Base64.decode64(File.readlines(filename).map(&:rstrip).join)
     key_sizes = (2..40).min_by(10) do |n|
-      a = StringUtil.hamming(ciphertext[0, n], ciphertext[n, n]) / n.to_f
-      b = StringUtil.hamming(ciphertext[2*n, n], ciphertext[3*n, n]) / n.to_f
+      a = (ciphertext[0, n].extend StringUtil).hamming(ciphertext[n, n]) / n.to_f
+      b = (ciphertext[2*n, n].extend StringUtil).hamming(ciphertext[3*n, n]) / n.to_f
       (a + b) / 2
     end
 
