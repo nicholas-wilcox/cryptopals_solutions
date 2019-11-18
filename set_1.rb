@@ -20,12 +20,12 @@ module Set_1
 
   # Challenge 1.3: Single-byte XOR cipher
   def challenge3(s)
-    (0...256).each.map { |c| HexString.new(s).xor_against_char(c).to_ascii }.min_by { |s| Frequency.english_score(s) }
+    (0...256).map { |c| HexString.new(s).xor_against_char(c).to_ascii }.min_by { |s| Frequency.english_score(s) }
   end
 
   # Challenge 1.4: Detect single-character XOR
   def challenge4(filename)
-    min_english_score = proc { |s| (0...256).each.map { |c| Frequency.english_score(HexString.new(s).xor_against_char(c).to_ascii) }.min }
+    min_english_score = proc { |s| (0...256).map { |c| Frequency.english_score(HexString.new(s).xor_against_char(c).to_ascii) }.min }
     return File.new(filename).each_line.map { |line| line.strip }.min_by { |s| min_english_score.call(s.strip) }
   end
 
