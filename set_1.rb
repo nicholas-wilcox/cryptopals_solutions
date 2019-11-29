@@ -7,28 +7,28 @@ require_relative "string_util"
 module Set_1
   module_function
 
-  # Challenge 1.1: Convert hex to base64
+  # Convert hex to base64
   def challenge1(s)
     Base64.encode64(HexString.new(s).to_ascii)
   end
 
-  # Challenge 1.2: Fixed XOR
+  # Fixed XOR
   def challenge2(s_1, s_2)
     HexString.new(s_1) ^ s_2
   end
 
-  # Challenge 1.3: Single-byte XOR cipher
+  # Single-byte XOR cipher
   def challenge3(s)
     (0...256).map { |c| HexString.new(s).xor_against_char(c).to_ascii }.min_by { |s| Frequency.english_score(s) }
   end
 
-  # Challenge 1.4: Detect single-character XOR
+  # Detect single-character XOR (input file is comprised of hexstrings)
   def challenge4(filename)
     min_english_score = proc { |s| (0...256).map { |c| Frequency.english_score(HexString.new(s).xor_against_char(c).to_ascii) }.min }
     File.new(filename).each_line.map { |line| line.strip }.min_by { |s| min_english_score.call(s.strip) }
   end
 
-  # Challenge 1.5: Implement repeating-key XOR
+  # Implement repeating-key XOR (output in example is a hexstring)
   def challenge5(s, k)
     HexString.from_bytes(CryptUtil.xor(s, k).bytes)
   end
@@ -46,12 +46,14 @@ module Set_1
       .min_by(&Frequency.method(:english_score))
   end
 
+  # AES in ECB mode
   def challenge7(filename, key)
     ciphertext = Base64.decode64(File.open(filename, &:read))
     cipher = CryptUtil.aes_128_ecb(key, :decrypt)
     cipher.update(ciphertext) + cipher.final
   end
 
+  # Detect AES in ECB mode (ECB is stateless, so can be sussed out by noticing repeated blocks)
   def challenge8(filename, block_size)
     File.new(filename).each_line.to_a.max_by do |line|
       ciphertext = HexString.new(line.rstrip).to_ascii
