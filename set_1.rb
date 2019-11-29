@@ -9,12 +9,12 @@ module Set_1
 
   # Challenge 1.1: Convert hex to base64
   def challenge1(s)
-    return Base64.encode64(HexString.new(s).to_ascii)
+    Base64.encode64(HexString.new(s).to_ascii)
   end
 
   # Challenge 1.2: Fixed XOR
   def challenge2(s_1, s_2)
-    return HexString.new(s_1) ^ s_2
+    HexString.new(s_1) ^ s_2
   end
 
   # Challenge 1.3: Single-byte XOR cipher
@@ -25,7 +25,7 @@ module Set_1
   # Challenge 1.4: Detect single-character XOR
   def challenge4(filename)
     min_english_score = proc { |s| (0...256).map { |c| Frequency.english_score(HexString.new(s).xor_against_char(c).to_ascii) }.min }
-    return File.new(filename).each_line.map { |line| line.strip }.min_by { |s| min_english_score.call(s.strip) }
+    File.new(filename).each_line.map { |line| line.strip }.min_by { |s| min_english_score.call(s.strip) }
   end
 
   # Challenge 1.5: Implement repeating-key XOR
@@ -52,11 +52,11 @@ module Set_1
     cipher.send(:decrypt)
     cipher.key = key
     cipher.padding = 0
-    return cipher.update(ciphertext) + cipher.final
+    cipher.update(ciphertext) + cipher.final
   end
 
   def challenge8(filename, block_size)
-    return File.new(filename).each_line.to_a.max_by do |line|
+    File.new(filename).each_line.to_a.max_by do |line|
       ciphertext = HexString.new(line.rstrip).to_ascii
       blocks = (0...ciphertext.length).map { |i| ciphertext[i, block_size] }
       blocks.map { |s| blocks.count(s) }.max
