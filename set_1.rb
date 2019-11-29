@@ -2,7 +2,6 @@ require "openssl"
 require "base64"
 require_relative "hex_string"
 require_relative "frequency"
-require_relative "vigenere"
 require_relative "string_util"
 
 module Set_1
@@ -31,20 +30,20 @@ module Set_1
 
   # Challenge 1.5: Implement repeating-key XOR
   def challenge5(s, k)
-    return Vigenere.xor(s, k)
+    HexString.from_bytes(CryptUtil.xor(s, k).bytes)
   end
 
   # Break repeating-key XOR
   def challenge6(filename)
-    ciphertext = Base64.decode64(File.readlines(filename).map(&:rstrip).join)
+    ciphertext = Base64.decode64(File.read(filename))
     key_sizes = (2..40).min_by(10) do |n|
-      a = (ciphertext[0, n].extend StringUtil).hamming(ciphertext[n, n]) / n.to_f
-      b = (ciphertext[2*n, n].extend StringUtil).hamming(ciphertext[3*n, n]) / n.to_f
-      (a + b) / 2
+      a = (ciphertext[0, n].extend StringUtil).hamming(ciphertext[n, n])
+      b = (ciphertext[2*n, n].extend StringUtil).hamming(ciphertext[3*n, n])
+      (a + b).to_f / (2 * n)
     end
 
-    return key_sizes.map { |n| Vigenere.decrypt(ciphertext, n) }
-      .min_by { |s| Frequency.english_score(s) }
+    key_sizes.map { |n| CryptUtil.vigenere_decrypt(ciphertext, n) }
+      .min_by(&Frequency.method(:english_score))
   end
 
   def challenge7(filename, key)
