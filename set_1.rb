@@ -48,10 +48,7 @@ module Set_1
 
   def challenge7(filename, key)
     ciphertext = Base64.decode64(File.open(filename, &:read))
-    cipher = OpenSSL::Cipher::AES.new(128, :ECB)
-    cipher.send(:decrypt)
-    cipher.key = key
-    cipher.padding = 0
+    cipher = CryptUtil.aes_128_ecb(key, :decrypt)
     cipher.update(ciphertext) + cipher.final
   end
 

@@ -1,3 +1,4 @@
+require "openssl"
 require_relative "array_util"
 require_relative "frequency"
 
@@ -25,6 +26,14 @@ module CryptUtil
       .map { |i| (0...256).min_by { |c| Frequency.english_score(xor(b[i], c.chr).map(&:chr).join) } }
       .map(&:chr).join
     xor(ciphertext, key)
-  end 
+  end
+
+  def aes_128_ecb(key, mode)
+    cipher = OpenSSL::Cipher::AES.new(128, :ECB)
+    cipher.send(mode)
+    cipher.key = key
+    cipher.padding = 0
+    cipher
+  end
 
 end
