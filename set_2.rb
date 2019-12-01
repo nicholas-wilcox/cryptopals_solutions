@@ -5,7 +5,7 @@ module Set_2
 
   def challenge9(s, block_size, encoding="ASCII-8BIT")
     offset = (-s.length % block_size)
-    return (s + (offset.chr * offset)).encode(encoding)
+    (s + (offset.chr * offset)).encode(encoding)
   end
 
   def challenge10(filename, key, iv=("\x00" * 16))
@@ -15,7 +15,7 @@ module Set_2
     cipher.key = key
     cipher.padding = 0
 
-    return (0...ciphertext.length).step(16).map { |i| ciphertext[i, 16] }.map do |block|
+    (0...ciphertext.length).step(16).map { |i| ciphertext[i, 16] }.map do |block|
       plaintext = cipher.update(block).bytes.map.with_index { |c, i| c ^ iv[i].ord }.map(&:chr).join
       iv = block
       plaintext
@@ -48,7 +48,7 @@ module Set_2
     blocks = (0...ciphertext.length).step(16).map { |i| ciphertext[i, 16] }
     detected_mode  = blocks.map { |s| blocks.count(s) }.max > 1 ? :ECB : :CBC
 
-    return { actual: mode, guess: detected_mode }
+    { actual: mode, guess: detected_mode }
   end
 
 end
