@@ -46,7 +46,7 @@ module Set_1
       .min_by(&Frequency.method(:english_score))
   end
 
-  # AES in ECB mode
+  # AES in ECB mode (input is Base64 encoded)
   def challenge7(filename, key)
     ciphertext = Base64.decode64(File.open(filename, &:read))
     cipher = CryptUtil.aes_128_ecb(key, :decrypt)
