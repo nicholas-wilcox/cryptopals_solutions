@@ -28,12 +28,39 @@ module CryptUtil
     xor(ciphertext, key)
   end
 
-  def aes_128_ecb(key, mode)
+  def pad(s, block_size)
+    ->(offset) { s + (offset.chr * offset)}.call(-s.length % block_size)
+  end
+
+  def aes_128_ecb_cipher(key, mode)
     cipher = OpenSSL::Cipher::AES.new(128, :ECB)
     cipher.send(mode)
     cipher.key = key
     cipher.padding = 0
     cipher
+  end
+  
+  def aes_128_ecb(text, key, mode)
+    cipher = aes_128_ecb_cipher(key, mode)
+    cipher.update(text) + cipher.final
+  end
+
+  def aes_128_cbc(text, key, mode, iv=("\x00" * 16))
+    xor_against_iv = ->(s) { (s.bytes.extend ArrayUtil).bi_map(iv.bytes, &:^).map(&:chr).join }
+    cipher = aes_128_ecb_cipher(key, mode)
+    text = pad(text, 16)
+    blocks(text, 16).map do |block|
+      case mode
+      when :decrypt
+        plaintext = xor_against_iv.call(cipher.update(block))
+        iv = block
+        plaintext
+      when :encrypt
+        ciphertext = cipher.update(xor_against_iv.call(block))
+        iv = ciphertext
+        ciphertext
+      end
+    end.join + cipher.final
   end
 
 end

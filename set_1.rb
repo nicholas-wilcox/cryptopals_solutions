@@ -49,8 +49,7 @@ module Set_1
   # AES in ECB mode (input is Base64 encoded)
   def challenge7(filename, key)
     ciphertext = Base64.decode64(File.open(filename, &:read))
-    cipher = CryptUtil.aes_128_ecb(key, :decrypt)
-    cipher.update(ciphertext) + cipher.final
+    CryptUtil.aes_128_ecb(ciphertext, key, :decrypt)
   end
 
   # Detect AES in ECB mode (ECB is stateless, so can be sussed out by noticing repeated blocks)
