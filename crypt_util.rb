@@ -1,0 +1,66 @@
+require "openssl"
+require_relative "array_util"
+require_relative "frequency"
+
+module CryptUtil
+  module_function
+
+  def blocks(a, n)
+    (0...a.length).step(n).map { |i| a[i, n] }
+  end
+
+  def xor(a, k)
+    xor_proc = ->(x, i) { x ^ k[i % k.length].ord }
+    case
+    when a.is_a?(String)
+      a.bytes.map.with_index(&xor_proc).map(&:chr).join
+    when a.is_a?(Array)
+      a.map.with_index(&xor_proc)
+    end
+  end
+
+  def vigenere_decrypt(ciphertext, key_size)
+    padding = [0] * (-ciphertext.length % key_size)
+    b = blocks(ciphertext.bytes + padding, key_size).transpose
+    key = (0...key_size)
+      .map { |i| (0...256).min_by { |c| Frequency.english_score(xor(b[i], c.chr).map(&:chr).join) } }
+      .map(&:chr).join
+    xor(ciphertext, key)
+  end
+
+  def pad(s, block_size)
+    ->(offset) { s + (offset.chr * offset)}.call(-s.length % block_size)
+  end
+
+  def aes_128_ecb_cipher(key, mode)
+    cipher = OpenSSL::Cipher::AES.new(128, :ECB)
+    cipher.send(mode)
+    cipher.key = key
+    cipher.padding = 0
+    cipher
+  end
+  
+  def aes_128_ecb(text, key, mode)
+    cipher = aes_128_ecb_cipher(key, mode)
+    cipher.update(text) + cipher.final
+  end
+
+  def aes_128_cbc(text, key, mode, iv=("\x00" * 16))
+    xor_against_iv = ->(s) { (s.bytes.extend ArrayUtil).bi_map(iv.bytes, &:^).map(&:chr).join }
+    cipher = aes_128_ecb_cipher(key, mode)
+    text = pad(text, 16)
+    blocks(text, 16).map do |block|
+      case mode
+      when :decrypt
+        plaintext = xor_against_iv.call(cipher.update(block))
+        iv = block
+        plaintext
+      when :encrypt
+        ciphertext = cipher.update(xor_against_iv.call(block))
+        iv = ciphertext
+        ciphertext
+      end
+    end.join + cipher.final
+  end
+
+end
