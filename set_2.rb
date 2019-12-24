@@ -42,4 +42,42 @@ module Set_2
     { actual: mode, guess: detected_mode }
   end
 
+  def challenge12(hidden_text)
+    key = Random.new.bytes(16)
+    oracle = ->(s) { CryptUtil.aes_128_ecb(CryptUtil.pad(s + hidden_text, 16), key, :encrypt) }
+    # Detect block length (for posterity)
+    detect_block_size = lambda do 
+      pad = ""
+      initial_length = oracle.call(pad).bytesize
+      new_length = 0
+      loop do
+        pad += ?A
+        new_length = oracle.call(pad).bytesize
+        break if new_length > initial_length
+      end
+      new_length - initial_length
+    end
+    # Detect ECB (for posterity)
+    detect_ecb = lambda do |block_size|
+      ->(ciphertext) { ciphertext[0, block_size] == ciphertext[block_size, block_size] }
+        .call(oracle.call(?A * (2 * block_size)))
+    end
+    # Check for ECB
+    block_size = detect_block_size.call()
+    unless detect_ecb.call(block_size)
+      print "Doesn't seem to be ECB"
+      return
+    end
+    # Decrypt hidden text from oracle
+    revealed_text = ""
+    (0...hidden_text.length).each do |i|
+      padding = ?A * (block_size - (1 + (i % block_size)))
+      target = (i / block_size) * block_size
+      enc_block = oracle.call(padding)[target, block_size]
+      revealed_text += (0...256).find(-> { ?A }) { |j| oracle.call(padding + revealed_text + j.chr)[target, block_size] == enc_block }.chr
+    end
+
+    revealed_text
+  end
+
 end
