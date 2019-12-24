@@ -4,15 +4,18 @@ require_relative "array_util"
 module Set_2
   module_function
 
+  # Implement PKCS#7 padding
   def challenge9(s, block_size, encoding="ASCII-8BIT")
     CryptUtil.pad(s, block_size).encode(encoding)
   end
 
+  # Implement CBC mode
   def challenge10(filename, key, iv=("\x00" * 16))
     ciphertext = Base64.decode64(File.open(filename, &:read))
     CryptUtil.aes_128_cbc(ciphertext, key, :decrypt, iv)
   end
 
+  # An ECB/CBC detection oracle
   def challenge11(input)
     # Generate random AES key; 16 bytes
     prng = Random.new
@@ -41,7 +44,8 @@ module Set_2
 
     { actual: mode, guess: detected_mode }
   end
-
+  
+  # Byte-at-a-time ECB decryption (Simple)
   def challenge12(hidden_text)
     key = Random.new.bytes(16)
     oracle = ->(s) { CryptUtil.aes_128_ecb(CryptUtil.pad(s + hidden_text, 16), key, :encrypt) }
