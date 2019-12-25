@@ -29,7 +29,11 @@ module CryptUtil
   end
 
   def pad(s, block_size)
-    ->(offset) { s + (offset.chr * offset)}.call(-s.length % block_size)
+    ->(offset) { s + (offset.chr * offset)}.call(-(s.length + 1) % block_size + 1)
+  end
+
+  def remove_pad(s)
+    s[0, s.length - s[-1].ord]
   end
 
   def aes_128_ecb_cipher(key, mode)
@@ -42,14 +46,16 @@ module CryptUtil
   
   def aes_128_ecb(text, key, mode)
     cipher = aes_128_ecb_cipher(key, mode)
-    cipher.update(text) + cipher.final
+    text = pad(text, 16) if mode == :encrypt
+    out = cipher.update(text) + cipher.final
+    mode == :decrypt ? remove_pad(out) : out
   end
 
   def aes_128_cbc(text, key, mode, iv=("\x00" * 16))
     xor_against_iv = ->(s) { (s.bytes.extend ArrayUtil).bi_map(iv.bytes, &:^).map(&:chr).join }
     cipher = aes_128_ecb_cipher(key, mode)
-    text = pad(text, 16)
-    blocks(text, 16).map do |block|
+    text = pad(text, 16) if mode == :encrypt
+    out = blocks(text, 16).map do |block|
       case mode
       when :decrypt
         plaintext = xor_against_iv.call(cipher.update(block))
@@ -61,6 +67,7 @@ module CryptUtil
         ciphertext
       end
     end.join + cipher.final
+    mode == :decrypt ? remove_pad(out) : out
   end
 
 end

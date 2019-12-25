@@ -48,7 +48,7 @@ module Set_2
   # Byte-at-a-time ECB decryption (Simple)
   def challenge12(hidden_text)
     key = Random.new.bytes(16)
-    oracle = ->(s) { CryptUtil.aes_128_ecb(CryptUtil.pad(s + hidden_text, 16), key, :encrypt) }
+    oracle = ->(s) { CryptUtil.aes_128_ecb(s + hidden_text, key, :encrypt) }
     # Detect block length (for posterity)
     detect_block_size = lambda do 
       pad = ""
