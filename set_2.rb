@@ -1,5 +1,6 @@
 require_relative "crypt_util"
 require_relative "array_util"
+require_relative "cryptanalysis"
 
 module Set_2
   module_function
@@ -39,36 +40,17 @@ module Set_2
     ciphertext = cipher.update(input) + cipher.final
     
     # Detect which encryption mode was used (using challenge 8 code to detect ECB)
-    blocks = (0...ciphertext.length).step(16).map { |i| ciphertext[i, 16] }
-    detected_mode  = blocks.map { |s| blocks.count(s) }.max > 1 ? :ECB : :CBC
+    detected_mode = Cryptanalysis.detect_ecb(ciphertext, 16) ? :ECB : :CBC
 
-    { actual: mode, guess: detected_mode }
+    { actual: mode, guess: detected_mode, match: mode == detected_mode }
   end
   
   # Byte-at-a-time ECB decryption (Simple)
   def challenge12(hidden_text)
     key = Random.new.bytes(16)
     oracle = ->(s) { CryptUtil.aes_128_ecb(s + hidden_text, key, :encrypt) }
-    # Detect block length (for posterity)
-    detect_block_size = lambda do 
-      pad = ""
-      initial_length = oracle.call(pad).bytesize
-      new_length = 0
-      loop do
-        pad += ?A
-        new_length = oracle.call(pad).bytesize
-        break if new_length > initial_length
-      end
-      new_length - initial_length
-    end
-    # Detect ECB (for posterity)
-    detect_ecb = lambda do |block_size|
-      ->(ciphertext) { ciphertext[0, block_size] == ciphertext[block_size, block_size] }
-        .call(oracle.call(?A * (2 * block_size)))
-    end
-    # Check for ECB
-    block_size = detect_block_size.call()
-    unless detect_ecb.call(block_size)
+    block_size = Cryptanalysis.detect_block_size(oracle)
+    unless Cryptanalysis.detect_ecb(oracle, block_size)
       print "Doesn't seem to be ECB"
       return
     end
