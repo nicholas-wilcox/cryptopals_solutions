@@ -1,6 +1,7 @@
 require_relative "crypt_util"
 require_relative "array_util"
 require_relative "cryptanalysis"
+require_relative "hash_util"
 
 module Set_2
   module_function
@@ -64,6 +65,21 @@ module Set_2
     end
 
     revealed_text
+  end
+
+  # ECB cut-and-paste
+  def challenge13()
+    profile_for = ->(email) {
+      { email: email.tr("&=", ""), uid: 1234, role: "user" }.extend(HashUtil).to_cookie
+    }
+    key = Random.new.bytes(16)
+    oracle = ->(email) { CryptUtil.aes_128_ecb(profile_for.call(email), key, :encrypt) }
+    decrypt_profile = ->(s) { HashUtil.from_cookie(CryptUtil.aes_128_ecb(s, key, :decrypt)) }
+
+    pad = (?A * 10) + "admin" + (11.chr * 11)
+    admin_block = oracle.call(pad)[16, 16]
+    admin_profile_ciphertext = oracle.call("nhw@aol.com")[0, 32] + admin_block
+    decrypt_profile.call(admin_profile_ciphertext)
   end
 
 end
