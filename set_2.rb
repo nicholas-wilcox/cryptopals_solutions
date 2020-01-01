@@ -51,20 +51,8 @@ module Set_2
     key = Random.new.bytes(16)
     oracle = ->(s) { CryptUtil.aes_128_ecb(s + hidden_text, key, :encrypt) }
     block_size = Cryptanalysis.detect_block_size(oracle)
-    unless Cryptanalysis.detect_ecb(oracle, block_size)
-      print "Doesn't seem to be ECB"
-      return
-    end
-    # Decrypt hidden text from oracle
-    revealed_text = ""
-    (0...hidden_text.length).each do |i|
-      padding = ?A * (block_size - (1 + (i % block_size)))
-      target = (i / block_size) * block_size
-      enc_block = oracle.call(padding)[target, block_size]
-      revealed_text += (0...256).find(-> { ?A }) { |j| oracle.call(padding + revealed_text + j.chr)[target, block_size] == enc_block }.chr
-    end
-
-    revealed_text
+    raise "Doesn't seem to be ECB" unless Cryptanalysis.detect_ecb(oracle, block_size)
+    Cryptanalysis.decrypt_ecb_oracle(oracle, block_size)
   end
 
   # ECB cut-and-paste
@@ -81,5 +69,17 @@ module Set_2
     admin_profile_ciphertext = oracle.call("nhw@aol.com")[0, 32] + admin_block
     decrypt_profile.call(admin_profile_ciphertext)
   end
+
+
+  # Byte-at-a-time ECB decryption (Harder)
+  def challenge14(hidden_text)
+    r = Random.new
+    key = r.bytes(16)
+    prefix = r.bytes(r.rand(2**8))
+    oracle = ->(s) { CryptUtil.aes_128_ecb(prefix + s + hidden_text, key, :encrypt) }
+    prefix_length = Cryptanalysis.detect_ecb_oracle_prefix_length(oracle, 16)
+    Cryptanalysis.decrypt_ecb_oracle(oracle, 16, prefix_length)
+  end
+
 
 end
