@@ -70,7 +70,6 @@ module Set_2
     decrypt_profile.call(admin_profile_ciphertext)
   end
 
-
   # Byte-at-a-time ECB decryption (Harder)
   def challenge14(hidden_text)
     r = Random.new
@@ -81,5 +80,9 @@ module Set_2
     Cryptanalysis.decrypt_ecb_oracle(oracle, 16, prefix_length)
   end
 
+  # PKCS#7 padding validation
+  def challenge15(s)
+    CryptUtil.remove_pad(s)
+  end
 
 end

@@ -32,7 +32,12 @@ module CryptUtil
     ->(offset) { s + (offset.chr * offset)}.call(-(s.length + 1) % block_size + 1)
   end
 
+  def valid_pad?(s)
+    s[((s.length - s[-1].ord)...s.length)].each_char.extend(EnumUtil).same?
+  end
+
   def remove_pad(s)
+    raise "Invalid PKCS#7 padding" unless valid_pad?(s)
     s[0, s.length - s[-1].ord]
   end
 
