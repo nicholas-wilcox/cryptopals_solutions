@@ -85,4 +85,25 @@ module Set_2
     CryptUtil.remove_pad(s)
   end
 
+  # CBC bitflipping attacks
+  def challenge16()
+    prefix = "comment1=cooking%20MCs;userdata="
+    suffix = ";comment2=%20like%20a%20pound%20of%20bacon"
+    key = Random.new.bytes(16)
+
+    oracle = ->(input) { CryptUtil.aes_128_cbc(prefix + input.gsub(/([;=])/, "'\\1'") + suffix, key, :encrypt) }
+    is_admin = lambda do |ciphertext|
+      CryptUtil.aes_128_cbc(ciphertext, key, :decrypt).split(/(?<!');(?!')/)
+        .map { |s| s.split(/(?<!')=(?!')/, 2) }
+        .map { |k, v| [k.to_sym, v] }.to_h[:admin] == "true"
+    end
+
+    ciphertext = oracle.call((?A * 21) + (?;.ord ^ 1).chr + "admin" + (?=.ord ^ 1).chr + "true")
+    target_block = CryptUtil.blocks(ciphertext, 16)[2].bytes
+    target_block[5] = target_block[5] ^ 1
+    target_block[11] = target_block[11] ^ 1
+    ciphertext[32, 16] = target_block.map(&:chr).join
+    is_admin.call(ciphertext)
+  end
+
 end
