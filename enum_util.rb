@@ -17,4 +17,8 @@ module EnumUtil
     map { |a| count(a) }.max == 1
   end
 
+  def same?
+    all? { |obj| obj == first }
+  end
+
 end
