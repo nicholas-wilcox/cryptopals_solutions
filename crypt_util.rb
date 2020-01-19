@@ -49,7 +49,9 @@ module CryptUtil
     cipher.padding = 0
     cipher
   end
-  
+ 
+  #TODO: Decouple padding operations, which can throw errors during removal, from encryption and decryption
+
   def aes_128_ecb(text, key, mode)
     cipher = aes_128_ecb_cipher(key, mode)
     text = pad(text, 16) if mode == :encrypt
