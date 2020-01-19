@@ -8,4 +8,8 @@ module StringUtil
       .map { |byte| (0..8).map { |n| byte[n] }.sum }
       .sum
   end
+
+  def replace_at(s, i)
+    self[0, i] + s + (i + s.length < length ? self[(i + s.length)...length] : "")
+  end
 end
