@@ -1,6 +1,7 @@
 require "openssl"
 require_relative "array_util"
 require_relative "frequency"
+require_relative "enum_util"
 
 module CryptUtil
   module_function
@@ -33,11 +34,11 @@ module CryptUtil
   end
 
   def valid_pad?(s)
-    s[((s.length - s[-1].ord)...s.length)].each_char.extend(EnumUtil).same?
+    (s[-1].ord.nil? || !(1..s.length).cover?(s[-1].ord)) ? false : s[((s.length - s[-1].ord)..-1)].each_char.extend(EnumUtil).same?
   end
 
   def remove_pad(s)
-    raise "Invalid PKCS#7 padding" unless valid_pad?(s)
+    raise ArgumentError, "Invalid PKCS#7 padding" unless valid_pad?(s)
     s[0, s.length - s[-1].ord]
   end
 
