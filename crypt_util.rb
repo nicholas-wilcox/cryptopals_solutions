@@ -2,6 +2,8 @@ require "openssl"
 require_relative "array_util"
 require_relative "frequency"
 require_relative "enum_util"
+require_relative "string_util"
+
 
 module CryptUtil
   module_function
@@ -76,6 +78,12 @@ module CryptUtil
       end
     end.join + cipher.final
     mode == :decrypt ? remove_pad(out) : out
+  end
+
+  def ctr(text, key)
+    blocks(text, 16).each_with_index.map do |block, i|
+      xor(aes_128_ecb(("\x00" * 16).extend(StringUtil).replace_at(i.chr, 8), key, :encrypt), block)
+    end.join
   end
 
 end

@@ -37,4 +37,9 @@ module Set_3
     Cryptanalysis.decrypt_cbc_padding_oracle(padding_oracle, iv, get_ciphertext.call())
   end
 
+  # Implement CTR, stream cipher mode
+  def challenge18(text, key)
+    CryptUtil.ctr(text, key) 
+  end
+
 end
