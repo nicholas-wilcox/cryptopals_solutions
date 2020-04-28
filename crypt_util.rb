@@ -80,9 +80,9 @@ module CryptUtil
     mode == :decrypt ? remove_pad(out) : out
   end
 
-  def ctr(text, key)
+  def ctr(text, key, nonce=("\x00" * 16))
     blocks(text, 16).each_with_index.map do |block, i|
-      xor(aes_128_ecb(("\x00" * 16).extend(StringUtil).replace_at(i.chr, 8), key, :encrypt), block)
+      xor(aes_128_ecb(nonce.extend(StringUtil).replace_at((nonce[8].ord + i).chr, 8), key, :encrypt), block)      
     end.join
   end
 
