@@ -3,6 +3,7 @@ require "base64"
 require_relative "hex_string"
 require_relative "frequency"
 require_relative "string_util"
+require_relative "cryptanalysis"
 
 module Set_1
   module_function
@@ -42,7 +43,7 @@ module Set_1
       (a + b).to_f / (2 * n)
     end
 
-    key_sizes.map { |n| CryptUtil.vigenere_decrypt(ciphertext, n) }
+    key_sizes.map { |n| Cryptanalysis.vigenere_decrypt(ciphertext, n) }
       .min_by(&Frequency.method(:english_score))
   end
 
