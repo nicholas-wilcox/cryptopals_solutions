@@ -22,15 +22,6 @@ module CryptUtil
     end
   end
 
-  def vigenere_decrypt(ciphertext, key_size)
-    padding = [0] * (-ciphertext.length % key_size)
-    b = blocks(ciphertext.bytes + padding, key_size).transpose
-    key = (0...key_size)
-      .map { |i| (0...256).min_by { |c| Frequency.english_score(xor(b[i], c.chr).map(&:chr).join) } }
-      .map(&:chr).join
-    xor(ciphertext, key)
-  end
-
   def pad(s, block_size)
     ->(offset) { s + (offset.chr * offset)}.call(-(s.length + 1) % block_size + 1)
   end

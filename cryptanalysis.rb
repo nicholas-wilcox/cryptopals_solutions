@@ -7,6 +7,15 @@ require_relative "hex_string"
 module Cryptanalysis
   module_function
 
+  def vigenere_decrypt(ciphertext, key_size)
+    padding = [0] * (-ciphertext.length % key_size)
+    b = CryptUtil.blocks(ciphertext.bytes + padding, key_size).transpose
+    key = (0...key_size)
+      .map { |i| (0...256).min_by { |c| Frequency.english_score(CryptUtil.xor(b[i], c.chr).map(&:chr).join) } }
+      .map(&:chr).join
+    CryptUtil.xor(ciphertext, key)
+  end
+
   def detect_block_size(oracle)
     pad = ""
     initial_length = oracle.call(pad).bytesize
