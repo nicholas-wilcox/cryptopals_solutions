@@ -44,6 +44,7 @@ module Frequency
     freqs = letter_frequencies(s)
     score = 0
     ENGLISH_CHARACTER_FREQUENCIES.each { |k, v| score += (freqs[k] - v).abs }
+    score += s.each_char.find_all { |c| !ENGLISH_CHARACTERS.include?(c) }.size
     return score
   end
 

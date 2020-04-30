@@ -2,6 +2,8 @@ require_relative "crypt_util"
 require_relative "array_util"
 require_relative "cryptanalysis"
 require_relative "hash_util"
+require_relative "frequency"
+require "base64"
 
 module Set_3
   module_function
@@ -42,4 +44,23 @@ module Set_3
     CryptUtil.ctr(text, key) 
   end
 
+  # Break fixed-nonce CTR mode using substitutions
+  def challenge19(filename)
+    key = Random.new.bytes(16)
+    ciphertexts = File.open(filename, &:read)
+      .each_line.map { |line| CryptUtil.ctr(Base64.decode64(line), key) }
+    max_length = ciphertexts.map(&:bytesize).max
+    keystream = Array.new(max_length)
+    plaintext_chars = ""
+
+    (0...max_length).each do |i|
+      guess_proc = ->(j) { CryptUtil.xor(ciphertexts.map { |s| s[i] }.find_all { |c| !c.nil? }.join, j.chr) }
+      keystream[i] = (0...256).min_by do |j|
+        Frequency.english_score(plaintext_chars + guess_proc.call(j))
+      end
+      plaintext_chars += guess_proc.call(keystream[i])
+    end
+
+    ciphertexts.each { |s| p CryptUtil.xor(s, keystream) }
+  end
 end
