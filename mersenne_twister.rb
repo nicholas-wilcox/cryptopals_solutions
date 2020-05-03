@@ -1,3 +1,5 @@
+require_relative "integer_util"
+
 class MersenneTwister
 
   W = 32
@@ -46,6 +48,12 @@ class MersenneTwister
 
     @index += 1
     y & W_MASK
+  end
+
+  def bytes(n)
+    ((n / 4).times.map { IntegerUtil.bytes(rand, 4) } +
+     ((n % 4).zero? ? [] : IntegerUtil.bytes(rand, 4)[0, n % 4])
+    ).flatten.map(&:chr).join
   end
 
   # For education purposes as per Challenge 23
