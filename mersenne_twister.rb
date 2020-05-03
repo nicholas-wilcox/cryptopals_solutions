@@ -55,7 +55,7 @@ class MersenneTwister
       x = (@mt[i] & UPPER_MASK) + (@mt[(i + 1) % N] & LOWER_MASK)
       xA = x >> 1
       if (x % 2) != 0
-        xA = xA ^ A
+        xA ^= A
       end
       @mt[i] = @mt[(i + M) % N] ^ xA
     end
