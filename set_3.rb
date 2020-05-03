@@ -102,4 +102,10 @@ module Set_3
     end
   end
 
+  # Clone an MT19937 RNG from its output
+  def challenge23
+    mt = MersenneTwister.new
+    internal_state = (0...624).map { |i| mt.rand }.map(&Cryptanalysis.method(:mt_untemper))
+  end
+
 end
