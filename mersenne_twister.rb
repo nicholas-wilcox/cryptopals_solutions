@@ -48,6 +48,11 @@ class MersenneTwister
     y & W_MASK
   end
 
+  # For education purposes as per Challenge 23
+  def set_state(mt)
+    @mt = mt
+  end
+
   private
 
   def twist
@@ -62,9 +67,5 @@ class MersenneTwister
 
     @index = 0
   end
-
-  private
-
-
 
 end
