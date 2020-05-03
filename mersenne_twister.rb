@@ -63,8 +63,4 @@ class MersenneTwister
     @index = 0
   end
 
-  private
-
-
-
 end
