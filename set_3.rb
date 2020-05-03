@@ -115,4 +115,37 @@ module Set_3
     end
   end
 
+  # Create the MT19937 stream cipher and break it
+  def challenge24
+    p 'Part 1: Brute-force 16-bit MT stream cipher using known plaintext suffix'
+    suffix = ?A * 14
+    r = Random.new
+    k = r.rand(0...2**16)
+    plaintext = r.bytes(r.rand(10...1000)) + suffix
+    ciphertext = CryptUtil.mt_cipher(plaintext, k)
+
+    guess = (0...2**16).find { |g| CryptUtil.mt_cipher(ciphertext, g).end_with?(suffix) }
+
+    printf("guess: %d, actual: %d\n", guess, k)
+    p guess === k ? 'Success!' : 'Failure!'
+
+    p 'Part 2: Detect if a password reset token was generated with MT19937 seeded with recent timestamp'
+
+    mt = MersenneTwister.new
+    c = Time.now.to_i
+
+    mt.seed(c)
+    time_token = mt.bytes(16)
+    random_token = r.bytes(16)
+    
+    detect = ->(t) do
+      mt = MersenneTwister.new
+      mt.seed(c)
+      t === mt.bytes(16)
+    end
+
+    p (detect.call(time_token) and !detect.call(random_token) ? 'Success' : 'Failure!')
+
+  end
+
 end
