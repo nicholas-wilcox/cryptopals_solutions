@@ -2,6 +2,7 @@ require_relative "crypt_util"
 require_relative "array_util"
 require_relative "cryptanalysis"
 require_relative "hash_util"
+require_relative "mersenne_twister"
 require_relative "frequency"
 require "base64"
 
@@ -71,6 +72,34 @@ module Set_3
       .each_line.map { |line| CryptUtil.ctr(Base64.decode64(line), key) }
     min_length = ciphertexts.map(&:bytesize).min
     Cryptanalysis.vigenere_decrypt(ciphertexts.map { |s| s[0, min_length] }.join, min_length)
+  end
+
+  # Implement the MT19937 Mersenne Twister RNG
+  def challenge21
+    # See mersenne_twister.rb
+  end
+
+  # Crack an MT19937 seed
+  def challenge22
+    mt = MersenneTwister.new
+    r = Random.new
+
+    # Seed mt with random, unknown time
+    print("Waiting to seed\n")
+    sleep(r.rand((40..1000)))
+    s = Time.now.to_i
+    mt.seed(s)
+    print("Seed chosen\n")
+    sleep(r.rand((40..1000)))
+
+    n = mt.rand
+    c = Time.now.to_i
+    guesses = (39..1000).map { |i| c - i }
+    guess = guesses.find { |i| mt.seed(i); mt.rand == n }
+    printf("guess: %s, actual: %d\n", guess.to_s, s)
+    if guess === s
+      p 'Success!'
+    end
   end
 
 end
