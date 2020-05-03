@@ -3,7 +3,7 @@ require_relative "array_util"
 require_relative "frequency"
 require_relative "enum_util"
 require_relative "string_util"
-
+require_relative "mersenne_twister"
 
 module CryptUtil
   module_function
@@ -77,4 +77,13 @@ module CryptUtil
     end.join
   end
 
+  def mt_cipher(text, key)
+    mt = MersenneTwister.new
+    mt.seed(key & 0xFFFF)
+    blocks(text.bytes, 4).map do |block|
+      n = mt.rand
+      bytes = 3.downto(0).map { |i| ((0xFF << (i * 8)) & n) >> (i * 8) }
+      block.extend(ArrayUtil).bi_map(bytes) { |a, b| (a ^ b).chr }.join
+    end.join
+  end
 end
