@@ -10,10 +10,10 @@ module Set_4
     r = Random.new
     key = r.bytes(16)
     # Assuming the nonce is \x00 * 16, it would just be cribbed into the edit function like the key
-    
     ciphertext = CryptUtil.ctr(plaintext, key)
 
-    edit = ->(ciphertext, key, offset, newtext) do
+    # Attacker's random access oracle
+    edit = ->(offset, newtext) do
       ciphertext.extend(StringUtil)
       nonce = ("\x00" * 16).extend(StringUtil)
       q, r = offset.divmod(16)
