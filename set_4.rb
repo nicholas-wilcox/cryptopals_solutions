@@ -56,4 +56,35 @@ module Set_4
     is_admin.call(ciphertext)
   end
 
+  class InvalidPlaintextException < RuntimeError
+    attr :plaintext
+    def initialize(plaintext)
+      @plaintext = plaintext
+    end
+  end
+
+  # Recover the key from CBC with IV=Key
+  def challenge27
+    prefix = "comment1=cooking%20MCs;userdata="
+    suffix = ";comment2=%20like%20a%20pound%20of%20bacon"
+    key = Random.new.bytes(16)
+
+    oracle = ->(input) { CryptUtil.aes_128_cbc(prefix + input.gsub(/([;=])/, "'\\1'") + suffix, key, :encrypt, key) }
+    verify = lambda do |ciphertext|
+      decrypted = CryptUtil.aes_128_cbc(ciphertext, key, :decrypt, key)
+      if !decrypted.each_codepoint.all? { |c| c < 0x7F }
+        raise InvalidPlaintextException.new(decrypted)
+      end
+    end
+
+    ciphertext = oracle.call(?A * 48)
+    guess = nil
+    begin
+      verify.call(ciphertext[0, 16] + ("\x00" * 16) + ciphertext)
+    rescue InvalidPlaintextException => error
+      guess = CryptUtil.xor(error.plaintext[0, 16], error.plaintext[32, 16])
+    end
+
+    guess === key
+  end
 end
