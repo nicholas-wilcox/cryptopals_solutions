@@ -72,8 +72,9 @@ module CryptUtil
   end
 
   def ctr(text, key, nonce=("\x00" * 16))
+    nonce.extend(StringUtil)
     blocks(text, 16).each_with_index.map do |block, i|
-      xor(block, aes_128_ecb(nonce.extend(StringUtil).replace_at((nonce[8].ord + i).chr, 8), key, :encrypt))
+      xor(block, aes_128_ecb(nonce.replace_at(((nonce[8].ord + i) % 256).chr, 8), key, :encrypt))
     end.join
   end
 
