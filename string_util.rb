@@ -10,6 +10,6 @@ module StringUtil
   end
 
   def replace_at(s, i)
-    self[0, i] + s + (i + s.length < length ? self[(i + s.length)...length] : "")
+    (self[0, i] + s + (i + s.length < length ? self[(i + s.length)...length] : "")).extend(StringUtil)
   end
 end
