@@ -24,11 +24,8 @@ module Set_4
       ciphertext.replace_at(CryptUtil.xor(newtext, key_stream[r, newtext.length]), offset)
     end
 
-    ciphertext = edit.call(ciphertext, key, 40, "HAHAHA! I changed the fucking plaintext")
-
-    ciphertext = edit.call(ciphertext, key, 100, "USING THIS HANDY FUNCTION")
-
-    p CryptUtil.ctr(ciphertext, key)
+    key_stream = edit.call(0, "\x00" * ciphertext.length)
+    CryptUtil.xor(ciphertext, key_stream)
   end
 
 end
