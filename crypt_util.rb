@@ -1,4 +1,5 @@
 require "openssl"
+require "digest"
 require_relative "array_util"
 require_relative "frequency"
 require_relative "enum_util"
@@ -87,4 +88,13 @@ module CryptUtil
       block.extend(ArrayUtil).bi_map(bytes) { |a, b| (a ^ b).chr }.join
     end.join
   end
+
+  def sha1_mac(key, message)
+    Digest::SHA1.digest(key + message)
+  end
+
+  def authenticate_sha1_mac(mac, key, message)
+    sha1_mac(key, message) === mac
+  end
+
 end
