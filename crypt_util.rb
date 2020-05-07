@@ -4,6 +4,7 @@ require_relative "frequency"
 require_relative "enum_util"
 require_relative "string_util"
 require_relative "mersenne_twister"
+require_relative "sha"
 
 module CryptUtil
   module_function
@@ -87,4 +88,13 @@ module CryptUtil
       block.extend(ArrayUtil).bi_map(bytes) { |a, b| (a ^ b).chr }.join
     end.join
   end
+
+  def sha1_mac(key, message)
+    SHA.sha1(key + message)
+  end
+
+  def authenticate_sha1_mac(mac, key, message)
+    sha1_mac(key, message) === mac
+  end
+
 end

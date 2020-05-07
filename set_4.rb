@@ -87,4 +87,10 @@ module Set_4
 
     guess === key
   end
+
+  # Implement a SHA-1 keyed MAC
+  def challenge28(mac, key, message)
+    CryptUtil.authenticate_sha1_mac(mac, key, message)
+  end
+
 end
