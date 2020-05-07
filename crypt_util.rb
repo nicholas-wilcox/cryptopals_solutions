@@ -1,10 +1,10 @@
 require "openssl"
-require "digest"
 require_relative "array_util"
 require_relative "frequency"
 require_relative "enum_util"
 require_relative "string_util"
 require_relative "mersenne_twister"
+require_relative "sha"
 
 module CryptUtil
   module_function
@@ -90,7 +90,7 @@ module CryptUtil
   end
 
   def sha1_mac(key, message)
-    Digest::SHA1.digest(key + message)
+    SHA.sha1(key + message)
   end
 
   def authenticate_sha1_mac(mac, key, message)
