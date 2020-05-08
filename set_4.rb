@@ -1,6 +1,7 @@
 require_relative "crypt_util"
 require_relative "string_util"
 require_relative "hex_string"
+require_relative "sha"
 
 module Set_4
   module_function
@@ -91,6 +92,42 @@ module Set_4
   # Implement a SHA-1 keyed MAC
   def challenge28(mac, key, message)
     CryptUtil.authenticate_sha1_mac(mac, key, message)
+  end
+
+  # Break a SHA-1 keyed MAC using length extension
+  def challenge29
+    # Copy SHA1 padding code into a proc
+    sha1_pad = proc do |s|
+      bit_len = s.bytesize << 3
+      s.force_encoding(Encoding::ASCII_8BIT)
+      pad = 0x80.chr
+      while ((s + pad).size % 64) != 56
+        pad += "\x00"
+      end
+      pad += [bit_len >> 32, bit_len & 0xffffffff].pack("N2")
+    end
+
+    # Message, which is known to the attacker in this case
+    message = "comment1=cooking%20MCs;userdata=foo;comment2=%20like%20a%20pound%20of%20bacon"
+
+    words = IO.readlines("/usr/share/dict/words", chomp: true)
+    key = words.sample
+
+    mac = CryptUtil.sha1_mac(key, message)
+    h = mac.unpack("N5")
+
+    extension = ";admin=true"
+
+    256.times do |i|
+      dummy_key = 0.chr * i
+      glue = sha1_pad.call(dummy_key + message)
+      forged_message = message + glue + extension
+      forged_mac = SHA.sha1(dummy_key + forged_message, h, [dummy_key, message, glue].map(&:size).sum / 64)
+      if CryptUtil.authenticate_sha1_mac(forged_mac, key, forged_message)
+        return forged_mac, forged_message
+      end
+    end
+
   end
 
 end

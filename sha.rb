@@ -1,10 +1,13 @@
 # Copied from https://rosettacode.org/wiki/SHA-1#Ruby
-# Minor fix implemented to avoid encoding issues when appended "\x80"
+# Further modified to allow for user-defined initial hash and block offset in computation
+# Also fixed an issue where utf-8 strings with multi-byte character would cause padding errors
 
 require 'stringio'
 
 module SHA
   module_function
+
+  INITIAL_STATE = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0].freeze
 
   # Calculates SHA-1 message digest of _string_. Returns binary digest.
   # For hexadecimal digest, use +*sha1(string).unpack('H*')+.
@@ -12,7 +15,7 @@ module SHA
   # This is a simple, pure-Ruby implementation of SHA-1, following
   # the algorithm in FIPS 180-1.
   #++
-  def sha1(string)
+  def sha1(string, initial_state = INITIAL_STATE, block_offset = 0)
     # functions and constants
     mask = 0xffffffff
     s = proc{|n, x| ((x << n) & mask) | (x >> (32 - n))}
@@ -24,12 +27,11 @@ module SHA
     ].freeze
     k = [0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6].freeze
    
-    # initial hash
-    h = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0]
-   
-    bit_len = string.size << 3
+    # Use bytesize, to account for multi-byte UTF-8 characters
+    bit_len = string.bytesize << 3
 
-    string += "\x80".force_encoding(Encoding::ASCII_8BIT)
+    # Force ascii encoding before padding for the same reason
+    string = string.bytes.append(0x80).map(&:chr).join
     while (string.size % 64) != 56
       string += "\0"
     end
@@ -38,10 +40,16 @@ module SHA
     if string.size % 64 != 0
       fail "failed to pad to correct length"
     end
-   
+
     io = StringIO.new(string)
     block = ""
    
+    # Seek past a given number of blocks
+    io.seek(64 * block_offset)
+
+    # The default value is frozen and we don't want to alter the input array
+    h = initial_state.dup
+
     while io.read(64, block)
       w = block.unpack("N16")
    
