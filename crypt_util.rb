@@ -5,6 +5,7 @@ require_relative "enum_util"
 require_relative "string_util"
 require_relative "mersenne_twister"
 require_relative "sha"
+require_relative "md4"
 
 module CryptUtil
   module_function
@@ -95,6 +96,14 @@ module CryptUtil
 
   def authenticate_sha1_mac(mac, key, message)
     sha1_mac(key, message) === mac
+  end
+
+  def md4_mac(key, message)
+    MD4.md4(key + message)
+  end
+
+  def authenticate_md4_mac(mac, key, message)
+    md4_mac(key, message) === mac
   end
 
 end

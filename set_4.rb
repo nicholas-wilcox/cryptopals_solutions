@@ -130,4 +130,38 @@ module Set_4
 
   end
 
+  # Break an MD4 keyed MAC using length extension
+  def challenge30
+    md4_pad = proc do |s|
+      bit_len = s.bytesize << 3
+      s.force_encoding(Encoding::ASCII_8BIT)
+      pad = 0x80.chr
+      while ((pad.size + s.size) % 64) != 56
+        pad += "\x00"
+      end
+      pad += [bit_len & ((1 << 32) - 1), bit_len >> 32].pack("V2")
+    end
+
+    # Message, which is known to the attacker in this case
+    message = "comment1=cooking%20MCs;userdata=foo;comment2=%20like%20a%20pound%20of%20bacon"
+
+    words = IO.readlines("/usr/share/dict/words", chomp: true)
+    key = words.sample
+
+    mac = CryptUtil.md4_mac(key, message)
+    h = mac.unpack("V4")
+
+    extension = ";admin=true"
+
+    256.times do |i|
+      dummy_key = 0.chr * i
+      glue = md4_pad.call(dummy_key + message)
+      forged_message = message + glue + extension
+      forged_mac = MD4.md4(dummy_key + forged_message, h, [dummy_key, message, glue].map(&:size).sum / 64)
+      if CryptUtil.authenticate_md4_mac(forged_mac, key, forged_message)
+        return forged_mac, forged_message
+      end
+    end
+  end
+
 end
