@@ -24,12 +24,11 @@ module SHA
     ].freeze
     k = [0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6].freeze
    
-    # initial hash
-    h = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0]
-   
-    bit_len = string.size << 3
+    # Use bytesize, to account for multi-byte UTF-8 characters
+    bit_len = string.bytesize << 3
 
-    string += "\x80".force_encoding(Encoding::ASCII_8BIT)
+    # Force ascii encoding before padding for the same reason
+    string = string.bytes.append(0x80).map(&:chr).join
     while (string.size % 64) != 56
       string += "\0"
     end
