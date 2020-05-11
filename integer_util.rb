@@ -1,12 +1,12 @@
 module IntegerUtil
   module_function
 
-  def ith_byte(n, i)
-    ((0xFF << (i * 8)) & n) >> (i * 8)
+  def bytes(n, min_bytes = 1)
+    n_tets(8, n, min_bytes)
   end
 
-  def bytes(n, min_bytes=1)
-    [min_bytes - 1, (n.bit_length / 8)].max.downto(0).map { |i| ith_byte(n, i) }
+  def n_tets(n, m, min_tets = 1)
+    [min_tets - 1, (m.bit_length / n)].max.downto(0).map { |i| (((2**n - 1) << (i * n)) & m) >> (i * n) }
   end
 
 end
