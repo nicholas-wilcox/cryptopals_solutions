@@ -1,7 +1,9 @@
-require_relative "array_util"
+require_relative 'array_util'
+require_relative 'string_util'
 
 module Utils
   class HexString < String
+    include StringUtil
 
     def self.from_bytes(bytes)
       new(bytes.map { |b| format("%02x", b) }.join)
@@ -12,7 +14,7 @@ module Utils
     end
 
     def to_ascii
-      octets.map { |n| format("%c", n) }.join
+      each_slice(2).map(&:hex).map(&:chr).join
     end
 
     def xor_against_char(c)
