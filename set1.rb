@@ -1,8 +1,7 @@
 #require "openssl"
 require_relative 'utils'
-#require_relative "frequency"
 #require_relative "string_util"
-#require_relative "cryptanalysis"
+require_relative 'cryptanalysis'
 
 module Set1
   module_function
@@ -17,16 +16,17 @@ module Set1
     s_1.extend(Utils::HexString) ^ s_2
   end
 
-  ## Single-byte XOR cipher
-  #def challenge3(s)
-  #  (0...256).map { |c| HexString.new(s).xor_against_char(c).to_ascii }.min_by { |s| Frequency.english_score(s) }
-  #end
+  # Single-byte XOR cipher
+  def challenge3(s)
+    h = s.dup.extend(Utils::HexString)
+    (0...256).map { |c| h.xor_against_char(c).to_ascii }
+      .min_by(&Cryptanalysis::Frequency.method(:english_score))
+  end
 
-  ## Detect single-character XOR (input file is comprised of hexstrings)
-  #def challenge4(filename)
-  #  min_english_score = proc { |s| (0...256).map { |c| Frequency.english_score(HexString.new(s).xor_against_char(c).to_ascii) }.min }
-  #  File.new(filename).each_line.map { |line| line.strip }.min_by { |s| min_english_score.call(s.strip) }
-  #end
+  # Detect single-character XOR (input file is comprised of hexstrings)
+  def challenge4(file)
+    file.each_line.map(&:chomp).map(&method(:challenge3)).min_by(&Cryptanalysis::Frequency.method(:english_score))
+  end
 
   ## Implement repeating-key XOR (output in example is a hexstring)
   #def challenge5(s, k)
