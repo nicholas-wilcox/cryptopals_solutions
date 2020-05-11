@@ -4,7 +4,7 @@ require_relative 'utils'
 #require_relative "string_util"
 #require_relative "cryptanalysis"
 
-module Set_1
+module Set1
   module_function
 
   # Convert hex to base64

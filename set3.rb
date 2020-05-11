@@ -6,7 +6,7 @@ require_relative "mersenne_twister"
 require_relative "frequency"
 require "base64"
 
-module Set_3
+module Set3
   module_function
 
   # The CBC padding oracle

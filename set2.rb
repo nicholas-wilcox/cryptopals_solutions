@@ -3,7 +3,7 @@ require_relative "array_util"
 require_relative "cryptanalysis"
 require_relative "hash_util"
 
-module Set_2
+module Set2
   module_function
 
   # Implement PKCS#7 padding

@@ -5,7 +5,7 @@ require_relative "sha"
 require "webrick"
 require "net/http"
 
-module Set_4
+module Set4
   module_function
 
   # Break "random access read/write" AES CTR
