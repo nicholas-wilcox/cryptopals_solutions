@@ -1,20 +1,16 @@
-#require_relative "crypt_util"
-#require_relative "enum_util"
-#require_relative "string_util"
-#require_relative "array_util"
-#require_relative "hex_string"
+require_relative "crypt_util"
 
 module Cryptanalysis
   module_function
 
-  #def vigenere_decrypt(ciphertext, key_size)
-  #  padding = [0] * (-ciphertext.length % key_size)
-  #  b = CryptUtil.blocks(ciphertext.bytes + padding, key_size).transpose
-  #  key = (0...key_size)
-  #    .map { |i| (0...256).min_by { |c| Frequency.english_score(CryptUtil.xor(b[i], c.chr).map(&:chr).join) } }
-  #    .map(&:chr).join
-  #  CryptUtil.xor(ciphertext, key)
-  #end
+  def vigenere_decrypt(ciphertext, key_size)
+    t = ciphertext.bytes.concat([0] * (-ciphertext.bytesize % key_size))
+      .each_slice(key_size).to_a.transpose
+    key = (0...key_size)
+      .map { |i| (0...256).min_by { |c| Frequency.english_score(CryptUtil.xor(t[i], c.chr).map(&:chr).join) } }
+      .map(&:chr).join
+    CryptUtil.xor(ciphertext, key)
+  end
 
   #def detect_block_size(oracle)
   #  pad = ""

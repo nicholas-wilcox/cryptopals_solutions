@@ -1,6 +1,7 @@
 require_relative 'utils'
 require_relative 'cryptanalysis'
 require_relative 'crypt_util'
+require 'base64'
 
 module Set1
   module_function
@@ -32,18 +33,17 @@ module Set1
     Utils::HexString.from_bytes(CryptUtil.xor(s.bytes, k))
   end
 
-  ## Break repeating-key XOR
-  #def challenge6(filename)
-  #  ciphertext = Base64.decode64(File.read(filename))
-  #  key_sizes = (2..40).min_by(10) do |n|
-  #    a = (ciphertext[0, n].extend StringUtil).hamming(ciphertext[n, n])
-  #    b = (ciphertext[2*n, n].extend StringUtil).hamming(ciphertext[3*n, n])
-  #    (a + b).to_f / (2 * n)
-  #  end
-
-  #  key_sizes.map { |n| Cryptanalysis.vigenere_decrypt(ciphertext, n) }
-  #    .min_by(&Frequency.method(:english_score))
-  #end
+  # Break repeating-key XOR
+  def challenge6(file)
+    ciphertext = Utils::Base64.decode(file.read)
+    (2..40).min_by(10) do |n|
+      (ciphertext[0, n].extend(Utils::StringUtil) ^ ciphertext[n, n])
+        .+(ciphertext[2*n, n].extend(Utils::StringUtil) ^ ciphertext[3*n, n])
+        .to_f / (2 * n)
+    end
+      .map { |n| Cryptanalysis.vigenere_decrypt(ciphertext, n) }
+      .min_by(&Cryptanalysis::Frequency.method(:english_score))
+  end
 
   ## AES in ECB mode (input is Base64 encoded)
   #def challenge7(filename, key)
