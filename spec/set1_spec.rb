@@ -1,6 +1,12 @@
 require 'base64'
 require_relative '../utils'
 require_relative '../set1'
+require_relative 'helpers'
+
+RSpec.configure do |c|
+  c.include Helpers
+end
+
 
 RSpec.describe 'Set 1' do
   it 'Encodes base64' do
@@ -23,6 +29,15 @@ RSpec.describe 'Set 1' do
   it 'Challenge 2: Fixed XOR' do
     expect(Set1.challenge2('1c0111001f010100061a024b53535009181c', '686974207468652062756c6c277320657965'))
       .to eq('746865206b696420646f6e277420706c6179')
+  end
+
+  it 'Challenge 3: Single-byte XOR cipher' do
+    expect(Set1.challenge3('1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736'))
+      .to eq('Cooking MC\'s like a pound of bacon')
+  end
+
+  it 'Challenge 4: Detect single-character XOR' do
+    expect(path_to('data/challenge4.txt').open(&Set1.method(:challenge4))).to eq("Now that the party is jumping\n")
   end
 end
 
