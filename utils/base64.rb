@@ -20,9 +20,8 @@ module Utils
     end
 
     def decode(s)
-      s.each_char.take_while(&PAD.method(:!=))
-        .map(&BASE64_REF.method(:index)).reject(&:nil?)
-        .each_slice(4).select { |block| block.size > 1 }
+      s.each_char.take_while(&PAD.method(:!=)).select(&BASE64_REF.method(:include?))
+        .map(&BASE64_REF.method(:index)).each_slice(4).select { |block| block.size > 1 }
         .map { |block| Utils::IntegerUtil.bytes(block.reduce(0) { |mem, n| (mem << 6) + n } >> (4 - block.size).*(2), block.size - 1) }
         .flatten.map(&:chr).join
     end
