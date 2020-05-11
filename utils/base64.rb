@@ -13,7 +13,7 @@ module Utils
 
     def encode(s)
       s.bytes.each_slice(3).map do |block|
-        IntegerUtil.n_tets(6, block.reduce(0) { |mem, n| (mem << 8) + n } << (3 - block.size).*(8), 4)
+        IntegerUtil.n_tets(block.reduce(0) { |mem, n| (mem << 8) + n } << (3 - block.size).*(8), 6, 4)
           .map(&BASE64_REF.method(:slice))[0, block.size + 1].join
           .concat(PAD * (3 - block.size))
       end.join
