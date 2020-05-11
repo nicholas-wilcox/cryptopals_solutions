@@ -7,7 +7,12 @@ module Utils
     end
 
     def n_tets(m, n, min_tets = 1)
-      m.digits(2**n).concat([0] * [0, min_tets - (m.bit_length.to_f / n).ceil].max).reverse
+      case
+      when m.zero?
+        [0] * min_tets
+      else
+        m.digits(2**n).concat([0] * [0, min_tets - (m.bit_length.to_f / n).ceil].max).reverse
+      end
     end
 
     def bit_sum(n)
