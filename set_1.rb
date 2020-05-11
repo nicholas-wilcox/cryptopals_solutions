@@ -12,10 +12,10 @@ module Set_1
     Utils::Base64.encode(Utils::HexString.new(s).to_ascii)
   end
 
-  ## Fixed XOR
-  #def challenge2(s_1, s_2)
-  #  HexString.new(s_1) ^ s_2
-  #end
+  # Fixed XOR
+  def challenge2(s_1, s_2)
+    Utils::HexString.new(s_1) ^ s_2
+  end
 
   ## Single-byte XOR cipher
   #def challenge3(s)

@@ -1,4 +1,3 @@
-require_relative 'array_util'
 require_relative 'string_util'
 
 module Utils
@@ -10,11 +9,11 @@ module Utils
     end
 
     def ^(other)
-      HexString.new((chars.extend ArrayUtil).bi_map(other.chars) { |a, b| (a.hex ^ b.hex).to_s(16) }.join)
+      HexString.new(chars.zip(other.chars).map{ |a, b| (a.hex ^ b.hex).to_s(16) }.join)
     end
 
     def to_ascii
-      each_slice(2).map(&:hex).map(&:chr).join
+      octets.map(&:chr).join
     end
 
     def xor_against_char(c)
@@ -22,7 +21,7 @@ module Utils
     end
 
     def octets
-      (0...length).step(2).map { |i| slice(i, 2) }.map(&:hex)
+      each_slice(2).map(&:hex)
     end
 
   end
