@@ -2,7 +2,8 @@ module Cryptanalysis
   module Frequency
     module_function
 
-    ENGLISH_CHARACTERS = " etaonisrhdlucmfwgypbvkxjqz".freeze
+    ENGLISH_CHARACTERS = ' etaonisrhdlucmfwgypbvkxjqz'.freeze
+    PUNCTUATION_CHARACTERS = '!"\'()-,.:;'
     # From https://web.archive.org/web/20170918020907/http://www.data-compression.com/english.html
     ENGLISH_CHARACTER_FREQUENCIES = {
       ' ' => 0.1918182,
@@ -38,13 +39,13 @@ module Cryptanalysis
       tally = Hash.new(0)
       s.downcase.each_char.select(&ENGLISH_CHARACTERS.method(:include?))
         .each { |c| tally[c] += 1 }
-      tally.transform_values! { |v| v.to_f / s.size }
+      tally.transform_values! { |v| (v.to_f / s.size)**2 }
     end
 
     def english_score(s)
       freqs = letter_frequencies(s)
       ENGLISH_CHARACTER_FREQUENCIES.sum { |k, v| (freqs[k] - v).abs }
-        .+ s.chars.reject(&ENGLISH_CHARACTERS.method(:include?)).size
+        .+ s.chars.reject(&ENGLISH_CHARACTERS.+(PUNCTUATION_CHARACTERS).method(:include?)).size
     end
 
   end
