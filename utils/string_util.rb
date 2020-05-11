@@ -1,13 +1,12 @@
 require_relative 'array_util'
+require_relative 'integer_util'
 
 module Utils
   module StringUtil
 
-    def hamming(other)
-      bytes.extend.(ArrayUtil)
-        .bi_map(other.bytes) { |a, b| a ^ b }
-        .map { |byte| (0..8).map { |n| byte[n] }.sum }
-        .sum
+    def ^(other)
+      bytes.zip(other.bytes).map { |a, b| a ^ b }
+        .map(&IntegerUtil.method(:bit_sum)).sum
     end
 
     def replace_at(s, i)
