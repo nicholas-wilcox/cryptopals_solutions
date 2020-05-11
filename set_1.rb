@@ -9,12 +9,12 @@ module Set_1
 
   # Convert hex to base64
   def challenge1(s)
-    Utils::Base64.encode(Utils::HexString.new(s).to_ascii)
+    Utils::Base64.encode(s.extend(Utils::HexString).to_ascii)
   end
 
   # Fixed XOR
   def challenge2(s_1, s_2)
-    Utils::HexString.new(s_1) ^ s_2
+    s_1.extend(Utils::HexString) ^ s_2
   end
 
   ## Single-byte XOR cipher

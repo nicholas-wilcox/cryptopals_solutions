@@ -1,15 +1,16 @@
 require_relative 'string_util'
 
 module Utils
-  class HexString < String
-    include StringUtil
+  module HexString
 
-    def self.from_bytes(bytes)
-      new(bytes.map { |b| format("%02x", b) }.join)
+    def from_bytes(bytes)
+      bytes.map { |b| format("%02x", b) }.join.extend(HexString)
     end
 
+    module_function :from_bytes
+
     def ^(other)
-      HexString.new(chars.zip(other.chars).map{ |a, b| (a.hex ^ b.hex).to_s(16) }.join)
+      chars.zip(other.chars).map{ |a, b| (a.hex ^ b.hex).to_s(16) }.join.extend(HexString)
     end
 
     def to_ascii
@@ -17,11 +18,11 @@ module Utils
     end
 
     def xor_against_char(c)
-      HexString.new(octets.map { |n| n ^ c.ord }.map { |n| n.to_s(16) }.join)
+      from_bytes(octets.map { |n| n ^ c.ord })
     end
 
     def octets
-      each_slice(2).map(&:hex)
+      extend(StringUtil).each_slice(2).map(&:hex)
     end
 
   end
