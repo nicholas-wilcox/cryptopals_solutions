@@ -1,19 +1,18 @@
-#require "openssl"
 require_relative 'utils'
-#require_relative "string_util"
 require_relative 'cryptanalysis'
+require_relative 'crypt_util'
 
 module Set1
   module_function
 
   # Convert hex to base64
   def challenge1(s)
-    Utils::Base64.encode(s.extend(Utils::HexString).to_ascii)
+    Utils::Base64.encode(s.dup.extend(Utils::HexString).to_ascii)
   end
 
   # Fixed XOR
-  def challenge2(s_1, s_2)
-    s_1.extend(Utils::HexString) ^ s_2
+  def challenge2(s1, s2)
+    s1.dup.extend(Utils::HexString) ^ s2
   end
 
   # Single-byte XOR cipher
@@ -28,10 +27,10 @@ module Set1
     file.each_line.map(&:chomp).map(&method(:challenge3)).min_by(&Cryptanalysis::Frequency.method(:english_score))
   end
 
-  ## Implement repeating-key XOR (output in example is a hexstring)
-  #def challenge5(s, k)
-  #  HexString.from_bytes(CryptUtil.xor(s, k).bytes)
-  #end
+  # Implement repeating-key XOR (input is ASCII and output is a hexstring)
+  def challenge5(s, k)
+    Utils::HexString.from_bytes(CryptUtil.xor(s.bytes, k))
+  end
 
   ## Break repeating-key XOR
   #def challenge6(filename)

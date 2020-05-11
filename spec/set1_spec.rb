@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'base64'
 require_relative '../utils'
 require_relative '../set1'
@@ -38,6 +40,11 @@ RSpec.describe 'Set 1' do
 
   it 'Challenge 4: Detect single-character XOR' do
     expect(path_to('data/challenge4.txt').open(&Set1.method(:challenge4))).to eq("Now that the party is jumping\n")
+  end
+
+  it 'Challenge 5: Implement repeating-key XOR' do
+    expect(Set1.challenge5("Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal", 'ICE'))
+      .to eq('0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f')
   end
 end
 
