@@ -40,5 +40,9 @@ RSpec.describe 'Set1' do
   it 'Challenge 6: Break repeating-key XOR' do
     expect(path_to('data/challenge6.txt').open(&Set1.method(:challenge6))).to eq(path_to('data/challenge6_solution.txt').open(&:read))
   end
+
+  it 'AES in ECB mode' do
+    expect(path_to('data/challenge7.txt').open { |file| Set1.challenge7(file, 'YELLOW SUBMARINE') }).to eq(path_to('data/challenge7_solution.txt').open(&:read))
+  end
 end
 

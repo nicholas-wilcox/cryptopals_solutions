@@ -45,11 +45,10 @@ module Set1
       .min_by(&Cryptanalysis::Frequency.method(:english_score))
   end
 
-  ## AES in ECB mode (input is Base64 encoded)
-  #def challenge7(filename, key)
-  #  ciphertext = Base64.decode64(File.open(filename, &:read))
-  #  CryptUtil.aes_128_ecb(ciphertext, key, :decrypt)
-  #end
+  # AES in ECB mode (input is Base64 encoded)
+  def challenge7(file, key)
+    CryptUtil.aes_128_ecb(Utils::Base64.decode(file.read), key, :decrypt)
+  end
 
   ## Detect AES in ECB mode (ECB is stateless, so can be sussed out by noticing repeated blocks)
   #def challenge8(filename, block_size)
