@@ -33,10 +33,6 @@ RSpec.describe 'Set1' do
       .to eq('0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f')
   end
 
-  it 'Computes Hamming distance between strings' do
-    expect('this is a test'.dup.extend(Utils::StringUtil) ^ 'wokka wokka!!!').to eq(37)
-  end
-
   it 'Challenge 6: Break repeating-key XOR' do
     expect(path_to('data/challenge6.txt').open(&Set1.method(:challenge6))).to eq(path_to('data/challenge6_solution.txt').open(&:read))
   end
