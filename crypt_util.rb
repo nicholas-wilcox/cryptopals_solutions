@@ -52,24 +52,23 @@ module CryptUtil
     mode == :decrypt ? remove_pad(out) : out
   end
 
-#  def aes_128_cbc(text, key, mode, iv=("\x00" * 16))
-#    xor_against_iv = ->(s) { (s.bytes.extend ArrayUtil).bi_map(iv.bytes, &:^).map(&:chr).join }
-#    cipher = aes_128_ecb_cipher(key, mode)
-#    text = pad(text, 16) if mode == :encrypt
-#    out = blocks(text, 16).map do |block|
-#      case mode
-#      when :decrypt
-#        plaintext = xor_against_iv.call(cipher.update(block))
-#        iv = block
-#        plaintext
-#      when :encrypt
-#        ciphertext = cipher.update(xor_against_iv.call(block))
-#        iv = ciphertext
-#        ciphertext
-#      end
-#    end.join + cipher.final
-#    mode == :decrypt ? remove_pad(out) : out
-#  end
+  def aes_128_cbc(text, key, mode, iv=("\x00" * 16))
+    cipher = aes_128_ecb_cipher(key, mode)
+    text = pad(text, 16) if mode == :encrypt
+    out = blocks(text, 16).map do |block|
+      case mode
+      when :decrypt
+        plaintext = xor(iv, cipher.update(block))
+        iv = block
+        plaintext
+      when :encrypt
+        ciphertext = cipher.update(xor(iv, block))
+        iv = ciphertext
+        ciphertext
+      end
+    end.join + cipher.final
+    mode == :decrypt ? remove_pad(out) : out
+  end
 #
 #  def ctr(text, key, nonce=("\x00" * 16))
 #    nonce.extend(StringUtil)
