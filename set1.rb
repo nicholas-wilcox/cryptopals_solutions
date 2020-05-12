@@ -50,13 +50,13 @@ module Set1
     CryptUtil.aes_128_ecb(Utils::Base64.decode(file.read), key, :decrypt)
   end
 
-  ## Detect AES in ECB mode (ECB is stateless, so can be sussed out by noticing repeated blocks)
-  #def challenge8(filename, block_size)
-  #  File.new(filename).each_line.to_a.max_by do |line|
-  #    ciphertext = HexString.new(line.rstrip).to_ascii
-  #    blocks = (0...ciphertext.length).map { |i| ciphertext[i, block_size] }
-  #    blocks.map { |s| blocks.count(s) }.max
-  #  end
-  #end
+  # Detect AES in ECB mode (ECB is stateless, so can be sussed out by noticing repeated blocks)
+  def challenge8(file)
+    file.each_line.map(&:chomp).to_a.max_by do |line|
+      ciphertext = line.extend(Utils::HexString).to_ascii
+      blocks = (0...ciphertext.length).map { |i| ciphertext[i, 16] }
+      blocks.map { |s| blocks.count(s) }.max
+    end
+  end
 
 end
