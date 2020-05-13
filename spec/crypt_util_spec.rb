@@ -1,6 +1,11 @@
 # frozen_string_literal: true
 
 require_relative '../crypt_util'
+require_relative 'helpers'
+
+RSpec.configure do |c|
+  c.extend Helpers
+end
 
 RSpec.describe 'CryptUtil' do
 
@@ -19,12 +24,12 @@ RSpec.describe 'CryptUtil' do
     end
 
     it 'produces valid padding' do
-      r = Random.new(RSpec.configuration.seed)
+      r = seeded_rng
       expect(CryptUtil.valid_pad?(CryptUtil.pad(r.bytes(r.rand(10..100)), r.rand(1..20)))).to be true
     end
 
     it 'handles edge case of text.bytesize % block_size = 0' do
-      r = Random.new(RSpec.configuration.seed)
+      r = seeded_rng
       block_size = r.rand(10..20)
       s = CryptUtil.pad(r.bytes(block_size), block_size)
       expect(s[block_size, block_size]).to eq(block_size.chr * block_size)
@@ -32,7 +37,7 @@ RSpec.describe 'CryptUtil' do
     end
 
     it 'removes padding correctly' do
-      r = Random.new(RSpec.configuration.seed)
+      r = seeded_rng
       s = r.bytes(r.rand(10..100))
       block_size = r.rand(10..20)
       expect(CryptUtil.remove_pad(CryptUtil.pad(s, block_size))).to eq(s)

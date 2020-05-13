@@ -5,7 +5,7 @@ require_relative '../set1'
 require_relative 'helpers'
 
 RSpec.configure do |c|
-  c.include Helpers
+  c.extend Helpers
 end
 
 RSpec.describe 'Set1' do
