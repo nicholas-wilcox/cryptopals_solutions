@@ -2,13 +2,8 @@
 
 require_relative '../utils'
 require_relative '../set2'
-require_relative 'helpers'
 require_relative '../crypt_util'
 require 'openssl'
-
-RSpec.configure do |c|
-  c.extend Helpers
-end
 
 RSpec.describe 'Set2' do
   it 'Challenge 9: Implement PKCS#7 padding' do

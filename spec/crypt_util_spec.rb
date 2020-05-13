@@ -1,11 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../crypt_util'
-require_relative 'helpers'
-
-RSpec.configure do |c|
-  c.extend Helpers
-end
 
 RSpec.describe 'CryptUtil' do
 

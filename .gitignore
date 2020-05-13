@@ -2,4 +2,4 @@
 .rspec-local
 main.rb
 *.txt
-!spec/**/*.txt
+!spec/data/*.txt

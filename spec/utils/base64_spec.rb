@@ -2,12 +2,6 @@
 
 require 'base64'
 require_relative '../../utils'
-require_relative '../helpers'
-
-RSpec.configure do |c|
-  c.extend Helpers
-  c.include Helpers
-end
 
 RSpec.describe 'Utils::Base64' do
   it 'Encodes base64' do
