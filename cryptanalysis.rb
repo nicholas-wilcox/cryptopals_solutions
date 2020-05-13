@@ -20,16 +20,6 @@ module Cryptanalysis
   #  new_length - initial_length
   #end 
 
-  #def detect_ecb(oracle_or_text, block_size)
-  #  detection = ->(text) { CryptUtil.blocks(text, block_size).each.extend(EnumUtil).repeat? }
-  #  case
-  #  when oracle_or_text.is_a?(Proc)
-  #    detection.call(oracle_or_text.call(?A * (3 * block_size)))
-  #  else
-  #    detection.call(oracle_or_text)
-  #  end
-  #end
-
   #def detect_ecb_oracle_prefix_length(oracle, block_size)
   #  # TODO: Make less naive. Don't assume your input to the oracle will be the only instance of
   #  # repeated blocks

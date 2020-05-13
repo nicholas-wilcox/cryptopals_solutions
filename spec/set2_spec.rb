@@ -7,7 +7,7 @@ require_relative '../crypt_util'
 require 'openssl'
 
 RSpec.configure do |c|
-  c.include Helpers
+  c.extend Helpers
 end
 
 RSpec.describe 'Set2' do
@@ -16,7 +16,7 @@ RSpec.describe 'Set2' do
   end
 
   context 'Challenge 10: Implement CBC mode' do
-    r = Random.new(RSpec.configuration.seed)
+    r = seeded_rng
     key = r.bytes(16)
     iv = r.bytes(16)
     text = r.bytes(r.rand(50..100))
@@ -32,6 +32,32 @@ RSpec.describe 'Set2' do
 
     it 'decrypts itself' do
       expect(CryptUtil.aes_128_cbc(CryptUtil.aes_128_cbc(text, key, :encrypt, iv), key, :decrypt, iv)).to eq(text)
+    end
+  end
+
+  context 'Challenge 11: And ECB/CBC detection oracle' do
+    r = seeded_rng
+    key = r.bytes(16)
+    iv = r.bytes(16)
+    prefix = r.bytes(r.rand(5..10))
+    suffix = r.bytes(r.rand(5..10))
+    oracle_for = proc do |cipher|
+      proc do |input|
+        case cipher
+        when :ECB
+          CryptUtil.aes_128_ecb(prefix + input + suffix, key, :encrypt)
+        when :CBC
+          CryptUtil.aes_128_cbc(prefix + input + suffix, key, :encrypt, iv)
+        end
+      end
+    end
+
+    it 'Detects ECB' do
+      expect(Set2.challenge11(oracle_for.call(:ECB))).to eq(:ECB)
+    end
+
+    it 'Detects CBC' do
+      expect(Set2.challenge11(oracle_for.call(:CBC))).to eq(:CBC)
     end
   end
 end

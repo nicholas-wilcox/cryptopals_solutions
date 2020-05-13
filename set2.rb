@@ -3,35 +3,11 @@ require_relative 'crypt_util'
 module Set2
   module_function
 
-  ## An ECB/CBC detection oracle
-  #def challenge11(input)
-  #  # Generate random AES key; 16 bytes
-  #  prng = Random.new
-  #  key = prng.bytes(16)
-  #  
-  #  # Add 5-10 bytes before and 5-10 bytes after the plaintext
-  #  prefix = prng.bytes(prng.rand(5..10))
-  #  suffix = prng.bytes(prng.rand(5..10))
-  #  plaintext = prefix + input + suffix
-
-  #  # Randomly select between EBC and CBC
-  #  mode = [:ECB, :CBC][prng.rand(2)]
-  #  
-  #  # Encrypt data
-  #  cipher = OpenSSL::Cipher::AES.new(128, mode)
-  #  cipher.send(:encrypt)
-  #  if (mode == :CBC)
-  #    cipher.iv = prng.bytes(16)
-  #  end
-  #  cipher.key = key
-  #  ciphertext = cipher.update(input) + cipher.final
-  #  
-  #  # Detect which encryption mode was used (using challenge 8 code to detect ECB)
-  #  detected_mode = Cryptanalysis.detect_ecb(ciphertext, 16) ? :ECB : :CBC
-
-  #  { actual: mode, guess: detected_mode, match: mode == detected_mode }
-  #end
-  #
+  # An ECB/CBC detection oracle
+  def challenge11(encryption_oracle)
+    encryption_oracle.call(?A * 48).bytes.each_slice(16).extend(Utils::EnumUtil).repeat? ? :ECB : :CBC
+  end
+  
   ## Byte-at-a-time ECB decryption (Simple)
   #def challenge12(hidden_text)
   #  key = Random.new.bytes(16)
