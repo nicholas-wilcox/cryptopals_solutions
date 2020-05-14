@@ -55,4 +55,11 @@ RSpec.describe 'Set2' do
       expect(Set2.challenge11(oracle_for.call(:CBC))).to eq(:CBC)
     end
   end
+
+  it 'Challenge 12: Byte-at-a-time ECB decryption (Simple)' do
+    text = path_to('data/challenge12.txt').open { |file| Utils::Base64.decode(file.read) }
+    key = seeded_rng.bytes(16)
+    encryption_oracle = proc { |input| CryptUtil.aes_128_ecb(input + text, key, :encrypt) }
+    expect(Set2.challenge12(encryption_oracle)).to eq(text)
+  end
 end

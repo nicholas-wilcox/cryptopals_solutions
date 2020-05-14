@@ -8,14 +8,13 @@ module Set2
     encryption_oracle.call(?A * 48).bytes.each_slice(16).extend(Utils::EnumUtil).repeat? ? :ECB : :CBC
   end
   
-  ## Byte-at-a-time ECB decryption (Simple)
-  #def challenge12(hidden_text)
-  #  key = Random.new.bytes(16)
-  #  oracle = ->(s) { CryptUtil.aes_128_ecb(s + hidden_text, key, :encrypt) }
-  #  block_size = Cryptanalysis.detect_block_size(oracle)
-  #  raise "Doesn't seem to be ECB" unless Cryptanalysis.detect_ecb(oracle, block_size)
-  #  Cryptanalysis.decrypt_ecb_oracle(oracle, block_size)
-  #end
+  # Byte-at-a-time ECB decryption (Simple)
+  def challenge12(oracle)
+    block_size = (1..Float::INFINITY).lazy.map(&0.chr.method(:*)).map(&oracle).map(&:bytesize)
+      .map(&oracle.call('').bytesize.method(:-)).map(&:-@).drop_while(&:zero?).first
+    raise "Doesn't seem to be ECB" unless oracle.call(?A * (3 * block_size)).bytes.each_slice(block_size).extend(Utils::EnumUtil).repeat?
+    Cryptanalysis.decrypt_ecb_oracle(oracle, block_size)
+  end
 
   ## ECB cut-and-paste
   #def challenge13()
