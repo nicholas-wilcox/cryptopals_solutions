@@ -4,8 +4,10 @@ require_relative 'utils'
 module CryptUtil
   module_function
 
+  INVALID_PAD_ERROR = 'Invalid PKCS#7 padding'.freeze
+
   def blocks(a, n)
-    (0...a.length).step(n).map { |i| a[i, n] }
+    (0...a.size).step(n).map { |i| a[i, n] }
   end
 
   def xor(a, k)
@@ -20,17 +22,18 @@ module CryptUtil
     end
   end
 
+  # Implements PKCS#6 padding as per RFC 5652
   def pad(s, block_size)
-    ->(offset) { s + (offset.chr * offset)}.call(-(s.length + 1) % block_size + 1)
+    proc { |offset| s + (offset.chr * offset)}.call(-(s.size + 1) % block_size + 1)
   end
 
   def valid_pad?(s)
-    (s[-1].ord.nil? || !(1..s.length).cover?(s[-1].ord)) ? false : s[((s.length - s[-1].ord)..-1)].each_char.extend(Utils::EnumUtil).same?
+    !s[-1].nil? && s[-1].ord <= s.size && s[s.size.-(s[-1].ord)..-1].each_char.extend(Utils::EnumUtil).same?
   end
 
   def remove_pad(s)
-    raise ArgumentError, "Invalid PKCS#7 padding" unless valid_pad?(s)
-    s[0, s.length - s[-1].ord]
+    raise ArgumentError, INVALID_PAD_ERROR unless valid_pad?(s)
+    s[0, s.size - s[-1].ord]
   end
 
   def aes_128_ecb_cipher(key, mode)
@@ -45,29 +48,27 @@ module CryptUtil
 
   def aes_128_ecb(text, key, mode)
     cipher = aes_128_ecb_cipher(key, mode)
-    text = pad(text, 16) if mode == :encrypt
-    out = cipher.update(text) + cipher.final
+    out = cipher.update(mode == :encrypt ? pad(text, 16) : text) + cipher.final
     mode == :decrypt ? remove_pad(out) : out
   end
 
-#  def aes_128_cbc(text, key, mode, iv=("\x00" * 16))
-#    xor_against_iv = ->(s) { (s.bytes.extend ArrayUtil).bi_map(iv.bytes, &:^).map(&:chr).join }
-#    cipher = aes_128_ecb_cipher(key, mode)
-#    text = pad(text, 16) if mode == :encrypt
-#    out = blocks(text, 16).map do |block|
-#      case mode
-#      when :decrypt
-#        plaintext = xor_against_iv.call(cipher.update(block))
-#        iv = block
-#        plaintext
-#      when :encrypt
-#        ciphertext = cipher.update(xor_against_iv.call(block))
-#        iv = ciphertext
-#        ciphertext
-#      end
-#    end.join + cipher.final
-#    mode == :decrypt ? remove_pad(out) : out
-#  end
+  def aes_128_cbc(text, key, mode, iv=("\x00" * 16))
+    cipher = aes_128_ecb_cipher(key, mode)
+    text = pad(text, 16) if mode == :encrypt
+    out = blocks(text, 16).map do |block|
+      case mode
+      when :decrypt
+        plaintext = xor(iv, cipher.update(block))
+        iv = block
+        plaintext
+      when :encrypt
+        ciphertext = cipher.update(xor(iv, block))
+        iv = ciphertext
+        ciphertext
+      end
+    end.join + cipher.final
+    mode == :decrypt ? remove_pad(out) : out
+  end
 #
 #  def ctr(text, key, nonce=("\x00" * 16))
 #    nonce.extend(StringUtil)

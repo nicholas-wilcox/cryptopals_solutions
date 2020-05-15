@@ -2,16 +2,11 @@ module Utils
   module EnumUtil
 
     def repeat?
-      loop do
-        return true if self.next == self.peek
-      end
-      false
+      each_cons(2).any? { |a, b| a == b }
     end
 
-    def find_repeat
-      (0...size).each { |i| return i if self.next == self.peek }
-    rescue StopIteration
-      nil
+    def repeats_at
+      each_cons(2).each_with_index.find(-> { [nil, nil] }) { |(a, b),| a == b }[1]
     end
 
     def uniq?

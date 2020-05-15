@@ -4,56 +4,32 @@ module Cryptanalysis
   module_function
 
   def vigenere_decrypt(ciphertext, key_size)
-    t = ciphertext.bytes.concat([0] * (-ciphertext.bytesize % key_size))
-      .each_slice(key_size).to_a.transpose
+    t = ciphertext.bytes.concat([0] * (-ciphertext.bytesize % key_size)).each_slice(key_size).to_a.transpose
     key = (0...key_size)
       .map { |i| (0...256).min_by { |c| Frequency.english_score(CryptUtil.xor(t[i], c.chr).map(&:chr).join) } }
       .map(&:chr).join
     CryptUtil.xor(ciphertext, key)
   end
 
-  #def detect_block_size(oracle)
-  #  pad = ""
-  #  initial_length = oracle.call(pad).bytesize
-  #  new_length = 0
-  #  new_length = oracle.call(pad += ?A).bytesize while new_length <= initial_length
-  #  new_length - initial_length
-  #end 
+  def detect_ecb_oracle_prefix_length(oracle, block_size)
+    # TODO: Make less naive. Don't assume your input to the oracle will be the only instance of
+    # repeated blocks
+    base_pad = ?A * (3 * block_size)
+    repeat_index = oracle.call(base_pad).bytes.each_slice(block_size).extend(Utils::EnumUtil).repeats_at
+    (block_size * repeat_index) - (0...block_size).find(-> { 0 }) do |i|
+      blocks = oracle.call(base_pad + (?A * i)).bytes.each_slice(block_size).to_a
+      blocks[repeat_index] == blocks[repeat_index + 2]
+    end
+  end
 
-  #def detect_ecb(oracle_or_text, block_size)
-  #  detection = ->(text) { CryptUtil.blocks(text, block_size).each.extend(EnumUtil).repeat? }
-  #  case
-  #  when oracle_or_text.is_a?(Proc)
-  #    detection.call(oracle_or_text.call(?A * (3 * block_size)))
-  #  else
-  #    detection.call(oracle_or_text)
-  #  end
-  #end
-
-  #def detect_ecb_oracle_prefix_length(oracle, block_size)
-  #  # TODO: Make less naive. Don't assume your input to the oracle will be the only instance of
-  #  # repeated blocks
-  #  pad = ?A * (3 * block_size)
-  #  (0...block_size).each do |i|
-  #    blocks = CryptUtil.blocks(oracle.call(pad), block_size)
-  #    repeat_index = blocks.each.extend(EnumUtil).find_repeat
-  #    break if repeat_index.nil?
-  #    return (block_size * repeat_index) - i if blocks[repeat_index] == blocks[repeat_index + 2]
-  #    pad += ?A
-  #  end
-  #  raise "Doesn't seem to be ECB"
-  #end
-
-  #def decrypt_ecb_oracle(oracle, block_size, offset = 0)
-  #  revealed_text = ""
-  #  (offset...oracle.call("").length).each do |i|
-  #    padding = ?A * (block_size - (1 + (i % block_size)))
-  #    target = (i / block_size) * block_size
-  #    enc_block = oracle.call(padding)[target, block_size]
-  #    revealed_text += (0...256).find(-> { "" }) { |j| oracle.call(padding + revealed_text + j.chr)[target, block_size] == enc_block }.chr
-  #  end
-  #  revealed_text
-  #end
+  def decrypt_ecb_oracle(oracle, block_size, offset = 0)
+    CryptUtil.remove_pad((offset...oracle.call('').bytesize).reduce('') do |decrypted, i|
+      pad = ?A * (-i).modulo(block_size).pred.modulo(block_size)
+      target_block = proc { |s| s.bytes.each_slice(block_size).to_a[i / block_size] }
+      is_next_char = proc { |c| target_block.call(oracle.call(pad + decrypted + c)) == target_block.call(oracle.call(pad)) }
+      decrypted + (0...256).map(&:chr).find(-> { '' }, &is_next_char)
+    end)
+  end
 
   #def decrypt_cbc_padding_oracle(padding_oracle, iv, ciphertext)
   #  #TODO: Tidy up lambdas and perhaps make execution more concise

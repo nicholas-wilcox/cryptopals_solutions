@@ -2,11 +2,6 @@
 
 require_relative '../utils'
 require_relative '../set1'
-require_relative 'helpers'
-
-RSpec.configure do |c|
-  c.include Helpers
-end
 
 RSpec.describe 'Set1' do
   it 'Challenge 1: Convert hex to base64' do

@@ -1,13 +1,13 @@
 module Utils
   module HashUtil
 
-    def from_cookie(s)
+    def from_query(s)
       s.split(?&).map { |s| s.split(?=, 2) }.map { |k, v| [k.to_sym, v] }.to_h.extend(self)
     end
 
-    module_function :from_cookie
+    module_function :from_query
 
-    def to_cookie()
+    def to_query()
       map { |a| a.join(?=) }.join(?&)
     end
 

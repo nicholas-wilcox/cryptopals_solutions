@@ -5,13 +5,13 @@ require_relative '../../utils'
 
 RSpec.describe 'Utils::Base64' do
   it 'Encodes base64' do
-    r = Random.new(RSpec.configuration.seed)
+    r = seeded_rng
     s = r.bytes(r.rand(10..100))
     expect(Utils::Base64.encode(s)).to eq(Base64.strict_encode64(s))
   end
 
   it 'Decodes base64 (inverts Ruby\'s Base64.encode64)' do
-    r = Random.new(RSpec.configuration.seed)
+    r = seeded_rng
     s = r.bytes(r.rand(10..100))
     expect(Utils::Base64.decode(Base64.encode64(s))).to eq(s)
   end
