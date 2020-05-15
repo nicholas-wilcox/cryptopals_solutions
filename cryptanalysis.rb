@@ -11,19 +11,16 @@ module Cryptanalysis
     CryptUtil.xor(ciphertext, key)
   end
 
-  #def detect_ecb_oracle_prefix_length(oracle, block_size)
-  #  # TODO: Make less naive. Don't assume your input to the oracle will be the only instance of
-  #  # repeated blocks
-  #  pad = ?A * (3 * block_size)
-  #  (0...block_size).each do |i|
-  #    blocks = CryptUtil.blocks(oracle.call(pad), block_size)
-  #    repeat_index = blocks.each.extend(EnumUtil).find_repeat
-  #    break if repeat_index.nil?
-  #    return (block_size * repeat_index) - i if blocks[repeat_index] == blocks[repeat_index + 2]
-  #    pad += ?A
-  #  end
-  #  raise "Doesn't seem to be ECB"
-  #end
+  def detect_ecb_oracle_prefix_length(oracle, block_size)
+    # TODO: Make less naive. Don't assume your input to the oracle will be the only instance of
+    # repeated blocks
+    base_pad = ?A * (3 * block_size)
+    repeat_index = oracle.call(base_pad).bytes.each_slice(block_size).extend(Utils::EnumUtil).repeats_at
+    (block_size * repeat_index) - (0...block_size).find(-> { 0 }) do |i|
+      blocks = oracle.call(base_pad + (?A * i)).bytes.each_slice(block_size).to_a
+      blocks[repeat_index] == blocks[repeat_index + 2]
+    end
+  end
 
   def decrypt_ecb_oracle(oracle, block_size, offset = 0)
     CryptUtil.remove_pad((offset...oracle.call('').bytesize).reduce('') do |decrypted, i|

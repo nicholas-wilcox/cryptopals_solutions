@@ -62,4 +62,48 @@ RSpec.describe 'Set2' do
     encryption_oracle = proc { |input| CryptUtil.aes_128_ecb(input + text, key, :encrypt) }
     expect(Set2.challenge12(encryption_oracle)).to eq(text)
   end
+
+  it 'Challenge 13: ECB cut-and-paste' do
+    key = seeded_rng.bytes(16)
+    profile_for = proc { |email| { email: email.tr('&=', ''), uid: 1234, role: 'user' }.extend(Utils::HashUtil).to_query }
+    oracle = proc { |email| CryptUtil.aes_128_ecb(profile_for.call(email), key, :encrypt) }
+    decrypt_profile = proc { |s| Utils::HashUtil.from_query(CryptUtil.aes_128_ecb(s, key, :decrypt)) }
+
+    expect(decrypt_profile.call(Set2.challenge13(oracle))[:role]).to eq('admin')
+  end
+  
+  it 'Challenge 14: Byte-at-a-time ECB decryption (Harder)' do
+    text = path_to('data/challenge12.txt').open { |file| Utils::Base64.decode(file.read) }
+    r = seeded_rng
+    key = r.bytes(16)
+    prefix = r.bytes(r.rand(50..100))
+    encryption_oracle = proc { |input| CryptUtil.aes_128_ecb(prefix + input + text, key, :encrypt) }
+    expect(Set2.challenge14(encryption_oracle)).to eq(text)
+  end
+
+  context 'Challenge 15: PKCS#7 padding validation' do
+    it 'removes valid padding' do
+      expect(CryptUtil.remove_pad("ICE ICE BABY\x04\x04\x04\x04")).to eq('ICE ICE BABY')
+    end
+
+    it 'raises ArgumentError when removing invalid padding' do
+      expect { CryptUtil.remove_pad("ICE ICE BABY\x05\x05\x05\x05") }.to raise_error(ArgumentError, CryptUtil::INVALID_PAD_ERROR)
+      expect { CryptUtil.remove_pad("ICE ICE BABY\x01\x02\x03\x04") }.to raise_error(ArgumentError, CryptUtil::INVALID_PAD_ERROR)
+    end
+  end
+
+  it 'Challenge 16: CBC bitflipping attacks' do
+    prefix = "comment1=cooking%20MCs;userdata="
+    suffix = ";comment2=%20like%20a%20pound%20of%20bacon"
+    key = seeded_rng.bytes(16)
+    oracle = proc { |input| CryptUtil.aes_128_cbc(prefix + input.gsub(/([;=])/, "'\\1'") + suffix, key, :encrypt) }
+    is_admin = proc do |ciphertext|
+      CryptUtil.aes_128_cbc(ciphertext, key, :decrypt).split(/(?<!');(?!')/)
+        .map { |s| s.split(/(?<!')=(?!')/, 2) }
+        .map { |k, v| [k.to_sym, v] }.to_h[:admin] == 'true'
+    end
+
+    expect(is_admin.call(Set2.challenge16(oracle))).to be true
+  end
+
 end
