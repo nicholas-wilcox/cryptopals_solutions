@@ -31,31 +31,29 @@ module Cryptanalysis
     end)
   end
 
-  #def decrypt_cbc_padding_oracle(padding_oracle, iv, ciphertext)
-  #  #TODO: Tidy up lambdas and perhaps make execution more concise
-  #  [iv, CryptUtil.blocks(ciphertext, iv.length)].flatten.extend(ArrayUtil).each_slice(2).map do |c1, c2|
-  #    decrypted_c2_bytes = [0] * iv.length
-  #    (1..iv.length).map do |i|
-  #      c1[(1 - i)..-1] = decrypted_c2_bytes[(1 - i)..-1].map { |j| (j ^ i).chr }.join unless i == 1
-  #      oracle_input_for_byte = ->(b) { c1.extend(StringUtil).replace_at(b.chr, iv.length - i) + c2 }
-  #      invert_byte_at = ->(s, i) { s.extend(StringUtil).replace_at((0xFF ^ s[i].ord).chr, i) }
-  #      find_byte = lambda do
-  #        matches = (0...256).find_all { |j| padding_oracle.call(oracle_input_for_byte.call(j)) }
-  #        if matches.length == 1
-  #          matches[0]
-  #        else
-  #          matches.find(nil) { |j| padding_oracle.call(invert_byte_at.call(oracle_input_for_byte.call(j), iv.length - (i + 1))) }
-  #        end      
-  #      end
-
-  #      lambda do |j|
-  #        return " " if j.nil?
-  #        decrypted_c2_bytes[-i] = j ^ i
-  #        (decrypted_c2_bytes[-i] ^ c1[-i].ord).chr
-  #      end.call(find_byte.call())
-  #    end.reverse.join
-  #  end.join
-  #end
+  def decrypt_cbc_padding_oracle(padding_oracle, iv, ciphertext)
+    CryptUtil.remove_pad(
+      ciphertext.bytes.each_slice(iv.bytesize).to_a.prepend(iv.bytes).each_cons(2).map do |c1, c2|
+        1.upto(iv.bytesize).reduce([]) do |decrypted_bytes, i|
+          c1_prime = c1[0..-i] + decrypted_bytes.map(&i.method(:^))
+          oracle_input_for_byte = proc { |b| c1_prime.values_at(0...-i, i == 1 ? 0...0 : (-i).succ..).insert(-i, b).append(*c2).map(&:chr).join }
+          invert_byte_at = proc { |s, i| s.extend(Utils::StringUtil).replace_at((0xFF ^ s[i].ord).chr, i) }
+          find_next_byte = proc do
+            matches = (0...256).select { |j| padding_oracle.call(oracle_input_for_byte.call(j)) }
+            case matches.size
+            when 0
+              nil
+            when 1
+              matches[0]
+            else
+              matches.find { |j| padding_oracle.call(invert_byte_at.call(oracle_input_for_byte.call(j), iv.bytesize - (i + 1))) }
+            end
+          end
+          decrypted_bytes.prepend(i ^ find_next_byte.call)
+        end.zip(c1).map { |a, b| a ^ b }.map(&:chr).join
+      end.join
+    )
+  end
 
   #def mt_untemper(n)
   #  n ^= (n >> MersenneTwister::L)
