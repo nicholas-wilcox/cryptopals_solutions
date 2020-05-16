@@ -28,7 +28,7 @@ module CryptUtil
   end
 
   def valid_pad?(s)
-    !s[-1].nil? && s[-1].ord <= s.size && s[s.size.-(s[-1].ord)..-1].each_char.extend(Utils::EnumUtil).same?
+    !s[-1].nil? && !s[-1].ord.zero? && s[-1].ord <= s.size && s[s.size.-(s[-1].ord)..-1].each_char.extend(Utils::EnumUtil).same?
   end
 
   def remove_pad(s)

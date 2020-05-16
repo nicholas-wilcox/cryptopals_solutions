@@ -18,6 +18,10 @@ RSpec.describe 'CryptUtil' do
       expect(CryptUtil.valid_pad?('')).to be false
     end
 
+    it 'invalidate a padding of \x00' do
+      expect(CryptUtil.valid_pad?(text + 0.chr)).to be false
+    end
+
     it 'produces valid padding' do
       r = seeded_rng
       expect(CryptUtil.valid_pad?(CryptUtil.pad(r.bytes(r.rand(10..100)), r.rand(1..20)))).to be true
