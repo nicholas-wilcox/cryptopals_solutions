@@ -1,34 +1,36 @@
 require_relative 'crypt_util'
 require_relative 'utils'
-require_relative "cryptanalysis"
+require_relative 'cryptanalysis'
 
 module Set3
   module_function
   
-  ## Implement CTR, stream cipher mode
-  #def challenge18(text, key)
-  #  CryptUtil.ctr(text, key) 
-  #end
+  # Break fixed-nonce CTR mode using substitutions
+  def challenge19(ciphertexts)
+    max_length = ciphertexts.map(&:bytesize).max
+    keystream = Array.new(max_length)
+    plaintexts = [''] * ciphertexts.size
+    guess = proc { |b, i| ciphertexts.map { |s| s[i] }.map { |c| c.nil? ? '' : c.ord.^(b).chr } }
+    
+    (0...max_length).each do |i|
+      keystream[i] = (0...256).min_by do |j|
+        Cryptanalysis::Frequency.english_score(plaintexts.zip(guess.call(j, i)).map { |text, c| text + c }.join)
+      end
+      guess.call(keystream[i], i).each_with_index { |c, i| plaintexts[i] += c }
+    end
 
-  ## Break fixed-nonce CTR mode using substitutions
-  #def challenge19(filename)
-  #  key = Random.new.bytes(16)
-  #  ciphertexts = File.open(filename, &:read)
-  #    .each_line.map { |line| CryptUtil.ctr(Base64.decode64(line), key) }
-  #  max_length = ciphertexts.map(&:bytesize).max
-  #  keystream = Array.new(max_length)
-  #  plaintext_chars = ""
+    # Second round so that the guesses for early characters can be tempered with the frequencies of the guessed latter characters.
+    # and so a second order analysis can be performed
+    (0...max_length).each do |i|
+      second_guess = (0...256).min_by do |j|
+        Cryptanalysis::Frequency.english_score(plaintexts.zip(guess.call(j, i))
+          .map { |text, c| text.extend(Utils::StringUtil).replace_at(c, [i, text.size].min) }.join("\n"), 2)
+      end
+      guess.call(second_guess, i).each_with_index { |c, j| plaintexts[j] = plaintexts[j].extend(Utils::StringUtil).replace_at(c, [i, plaintexts[j].size].min) }
+    end
 
-  #  (0...max_length).each do |i|
-  #    guess_proc = ->(j) { CryptUtil.xor(ciphertexts.map { |s| s[i] }.find_all { |c| !c.nil? }.join, j.chr) }
-  #    keystream[i] = (0...256).min_by do |j|
-  #      Frequency.english_score(plaintext_chars + guess_proc.call(j))
-  #    end
-  #    plaintext_chars += guess_proc.call(keystream[i])
-  #  end
-
-  #  ciphertexts.each { |s| p CryptUtil.xor(s, keystream) }
-  #end
+    plaintexts
+  end
 
   ## Break fixed-nonce CTR statistically
   #def challenge20(filename)
