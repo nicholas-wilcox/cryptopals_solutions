@@ -26,4 +26,17 @@ RSpec.describe 'Set4', :focus => true do
 
     expect(Set4.challenge25(ciphertext, edit)).to eq(text)
   end
+
+  it 'Challenge 26: CTR bitflipping' do
+    prefix = "comment1=cooking%20MCs;userdata="
+    suffix = ";comment2=%20like%20a%20pound%20of%20bacon"
+    oracle = proc { |input| CryptUtil.ctr(prefix + input.gsub(/([;=])/, "'\\1'") + suffix, key) }
+    is_admin = proc do |ciphertext|
+      CryptUtil.ctr(ciphertext, key).split(/(?<!');(?!')/)
+        .map { |s| s.split(/(?<!')=(?!')/, 2) }
+        .map { |k, v| [k.to_sym, v] }.to_h[:admin] == "true"
+    end
+
+    expect(is_admin.call(Set4.challenge26(oracle))).to be_truthy
+  end
 end

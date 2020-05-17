@@ -12,33 +12,20 @@ module Set4
     CryptUtil.xor(ciphertext, edit_proc.call(0, "\x00" * ciphertext.bytesize))
   end
 
-  ## CTR bitflipping
-  #def challenge26
-  #  prefix = "comment1=cooking%20MCs;userdata="
-  #  suffix = ";comment2=%20like%20a%20pound%20of%20bacon"
-  #  key = Random.new.bytes(16)
+  # CTR bitflipping
+  def challenge26(oracle)
+    payload = 'asdfXadminXtrue'
+    test_payload = ?A * payload.length
+    test_ciphertext = oracle.call(test_payload)
+    null_ciphertext = oracle.call("\x00" * payload.bytesize)
 
-  #  oracle = ->(input) { CryptUtil.ctr(prefix + input.gsub(/([;=])/, "'\\1'") + suffix, key) }
-  #  is_admin = lambda do |ciphertext|
-  #    CryptUtil.ctr(ciphertext, key).split(/(?<!');(?!')/)
-  #      .map { |s| s.split(/(?<!')=(?!')/, 2) }
-  #      .map { |k, v| [k.to_sym, v] }.to_h[:admin] == "true"
-  #  end
-  #
-  #  payload = "asdfXadminXtrue"
-  #  test_payload = ?A * payload.length
-  #  test_ciphertext = oracle.call(test_payload)
-  #  null_ciphertext = oracle.call("\x00" * payload.length)
+    offset = CryptUtil.xor(null_ciphertext, test_ciphertext).index(test_payload)
+    key_stream = null_ciphertext[offset, payload.length]
 
-  #  offset = CryptUtil.xor(null_ciphertext, test_ciphertext).index(test_payload)
-  #  key_stream = null_ciphertext[offset, payload.length]
-
-  #  ciphertext = oracle.call(payload).extend(StringUtil)
-  #    .replace_at((key_stream[4].ord ^ ?;.ord).chr, offset + 4)
-  #    .replace_at((key_stream[10].ord ^ ?=.ord).chr, offset + 10)
-
-  #  is_admin.call(ciphertext)
-  #end
+    oracle.call(payload).extend(Utils::StringUtil)
+      .replace_at((key_stream[4].ord ^ ?;.ord).chr, offset + 4)
+      .replace_at((key_stream[10].ord ^ ?=.ord).chr, offset + 10)
+  end
 
   #class InvalidPlaintextException < RuntimeError
   #  attr :plaintext
