@@ -7,12 +7,11 @@ require_relative '../mersenne_twister'
 
 RSpec.describe 'Set3' do
 
-  it 'Challenge 17: The CBC padding oracle' do
-    r = seeded_rng
-    text = r.bytes(r.rand(50..100))
-    key = r.bytes(16)
-    iv = r.bytes(16)
+  key = Random.bytes(16)
+  iv = Random.bytes(16)
 
+  it 'Challenge 17: The CBC padding oracle' do
+    text = Random.bytes(rand(50..100))
     padding_oracle = proc do |ciphertext|
       CryptUtil.aes_128_cbc(ciphertext, key, :decrypt, iv)
       true
@@ -30,7 +29,6 @@ RSpec.describe 'Set3' do
 
   context 'Challenge 19: Break fixed-nonce CTR mode using substitutions', :frequency_analysis => true, :long => true do
     it 'decrypts within a margin of error of 10 characters (case-insensitive)' do
-      key = seeded_rng.bytes(16)
       texts = path_to('data/challenge19.txt').open.each_line.map(&Utils::Base64.method(:decode))
       ciphertexts = texts.map { |text| CryptUtil.ctr(text, key) }
       case_char_distance = proc { |s1, s2| s1.chars.zip(s2.chars).reject { |c1, c2| c1.casecmp(c2).zero? }.size }
@@ -39,7 +37,6 @@ RSpec.describe 'Set3' do
   end
 
   it 'Challenge 20: Break fixed-nonce CTR statistically', :frequency_analysis => true do
-    key = seeded_rng.bytes(16)
     texts = path_to('data/challenge20.txt').open.each_line.map(&Utils::Base64.method(:decode))
     min_length = texts.map(&:bytesize).min
     texts.map! { |text| text[0, min_length] }
@@ -75,8 +72,8 @@ RSpec.describe 'Set3' do
   context 'Challenge 24: Create the MT19937 stream cipher and break it' do
     it 'Part 1: Brute-force 16-bit MT stream cipher using known plaintext suffix' do
       known_plaintext = ?A * 14
-      key = rand(0...2**16)
-      expect(Set3.challenge24_part1(CryptUtil.mt_cipher(Random.bytes(rand(10...1000)) + known_plaintext, key), known_plaintext)).to eq(key)
+      mt_key = rand(0...2**16)
+      expect(Set3.challenge24_part1(CryptUtil.mt_cipher(Random.bytes(rand(10...1000)) + known_plaintext, mt_key), known_plaintext)).to eq(mt_key)
     end
 
     it 'Part 2: Detect if a password reset token was generated with MT19937 seeded with recent timestamp' do
