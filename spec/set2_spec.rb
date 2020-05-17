@@ -103,7 +103,7 @@ RSpec.describe 'Set2' do
         .map { |k, v| [k.to_sym, v] }.to_h[:admin] == 'true'
     end
 
-    expect(is_admin.call(Set2.challenge16(oracle))).to be true
+    expect(is_admin.call(Set2.challenge16(oracle))).to be_truthy
   end
 
 end
