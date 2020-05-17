@@ -2,7 +2,6 @@ module Cryptanalysis
   module Frequency
     module_function
 
-    #ENGLISH_CHARACTERS = ' etaonisrhdlucmfwgypbvkxjqz'.freeze
     ENGLISH_CHARACTERS = (?a..?z).to_a.append(' ').join.freeze
     PUNCTUATION_CHARACTERS = "!\"'()-,.:;\n".freeze
     # From https://web.archive.org/web/20170918020907/http://www.data-compression.com/english.html
@@ -88,14 +87,15 @@ module Cryptanalysis
       end
     end
 
-    def english_score(s, max_order = 1)
+    def english_score(s, max_order: 1, discount_punctuation: true, exception_characters: '')
+      valid_char = ENGLISH_CHARACTERS.+(discount_punctuation ? PUNCTUATION_CHARACTERS : '').+(exception_characters).method(:include?)
       freqs = letter_frequencies(s)
       digram_freqs = digram_frequencies(s)
       [
         ENGLISH_CHARACTER_FREQUENCIES.sum { |k, v| (freqs[k] - v).abs },
-        s.downcase.chars.reject(&ENGLISH_CHARACTERS.method(:include?)).reject(&PUNCTUATION_CHARACTERS.method(:include?)).size,
+        s.downcase.chars.reject(&valid_char).size,
         (max_order >= 2) ? ENGLISH_CHARACTERS.chars.combination(2).sum { |c1, c2| (digram_freqs[c1][c2] - digram_lookup(c1, c2)).abs } : 0,
-        (max_order >= 2) ? s.downcase.chars.each_cons(2).reject { |digram| digram.all?(&ENGLISH_CHARACTERS.method(:include?)) }.size : 0
+        (max_order >= 2) ? s.downcase.chars.each_cons(2).reject { |digram| digram.all?(valid_char) }.size : 0
       ].sum
     end
 

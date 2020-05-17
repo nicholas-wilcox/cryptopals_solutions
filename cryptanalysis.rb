@@ -3,11 +3,15 @@ require_relative "crypt_util"
 module Cryptanalysis
   module_function
 
-  def vigenere_decrypt(ciphertext, key_size)
+  def vigenere_decrypt(ciphertext, key_size, discount_punctuation: true, exception_characters: '')
     t = ciphertext.bytes.concat([0] * (-ciphertext.bytesize % key_size)).each_slice(key_size).to_a.transpose
-    key = (0...key_size)
-      .map { |i| (0...256).min_by { |c| Frequency.english_score(CryptUtil.xor(t[i], c.chr).map(&:chr).join) } }
-      .map(&:chr).join
+    key = (0...key_size).map do |i|
+      (0...256).min_by do |c|
+        Frequency.english_score(CryptUtil.xor(t[i], c.chr).map(&:chr).join,
+                                discount_punctuation: discount_punctuation,
+                                exception_characters: exception_characters)
+      end
+    end.map(&:chr).join
     CryptUtil.xor(ciphertext, key)
   end
 
