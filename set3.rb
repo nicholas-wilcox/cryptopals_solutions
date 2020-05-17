@@ -1,151 +1,59 @@
-require_relative "crypt_util"
-require_relative "array_util"
-require_relative "cryptanalysis"
-require_relative "hash_util"
-require_relative "mersenne_twister"
-require_relative "frequency"
-require "base64"
+require_relative 'crypt_util'
+require_relative 'utils'
+require_relative 'cryptanalysis'
+require_relative 'mersenne_twister'
 
 module Set3
   module_function
-
-  # The CBC padding oracle
-  def challenge17()
-    strings = [
-      "MDAwMDAwTm93IHRoYXQgdGhlIHBhcnR5IGlzIGp1bXBpbmc=",
-      "MDAwMDAxV2l0aCB0aGUgYmFzcyBraWNrZWQgaW4gYW5kIHRoZSBWZWdhJ3MgYXJlIHB1bXBpbic=",
-      "MDAwMDAyUXVpY2sgdG8gdGhlIHBvaW50LCB0byB0aGUgcG9pbnQsIG5vIGZha2luZw==",
-      "MDAwMDAzQ29va2luZyBNQydzIGxpa2UgYSBwb3VuZCBvZiBiYWNvbg==",
-      "MDAwMDA0QnVybmluZyAnZW0sIGlmIHlvdSBhaW4ndCBxdWljayBhbmQgbmltYmxl",
-      "MDAwMDA1SSBnbyBjcmF6eSB3aGVuIEkgaGVhciBhIGN5bWJhbA==",
-      "MDAwMDA2QW5kIGEgaGlnaCBoYXQgd2l0aCBhIHNvdXBlZCB1cCB0ZW1wbw==",
-      "MDAwMDA3SSdtIG9uIGEgcm9sbCwgaXQncyB0aW1lIHRvIGdvIHNvbG8=",
-      "MDAwMDA4b2xsaW4nIGluIG15IGZpdmUgcG9pbnQgb2g=",
-      "MDAwMDA5aXRoIG15IHJhZy10b3AgZG93biBzbyBteSBoYWlyIGNhbiBibG93"
-    ]
-    prng = Random.new
-    key = prng.bytes(16)
-    iv = prng.bytes(16)
-    random_index = prng.rand(10)
-    plaintext = strings[random_index]
-    get_ciphertext = ->() { CryptUtil.aes_128_cbc(plaintext, key, :encrypt, iv) }
-
-    padding_oracle = lambda do |ciphertext|
-      CryptUtil.aes_128_cbc(ciphertext, key, :decrypt, iv)
-      true
-    rescue ArgumentError
-      false
-    end
-
-    Cryptanalysis.decrypt_cbc_padding_oracle(padding_oracle, iv, get_ciphertext.call())
-  end
-
-  # Implement CTR, stream cipher mode
-  def challenge18(text, key)
-    CryptUtil.ctr(text, key) 
-  end
-
+  
   # Break fixed-nonce CTR mode using substitutions
-  def challenge19(filename)
-    key = Random.new.bytes(16)
-    ciphertexts = File.open(filename, &:read)
-      .each_line.map { |line| CryptUtil.ctr(Base64.decode64(line), key) }
+  def challenge19(ciphertexts)
     max_length = ciphertexts.map(&:bytesize).max
     keystream = Array.new(max_length)
-    plaintext_chars = ""
-
+    plaintexts = [''] * ciphertexts.size
+    guess = proc { |b, i| ciphertexts.map { |s| s[i] }.map { |c| c.nil? ? '' : c.ord.^(b).chr } }
+    
     (0...max_length).each do |i|
-      guess_proc = ->(j) { CryptUtil.xor(ciphertexts.map { |s| s[i] }.find_all { |c| !c.nil? }.join, j.chr) }
       keystream[i] = (0...256).min_by do |j|
-        Frequency.english_score(plaintext_chars + guess_proc.call(j))
+        Cryptanalysis::Frequency.english_score(plaintexts.zip(guess.call(j, i)).map { |text, c| text + c }.join)
       end
-      plaintext_chars += guess_proc.call(keystream[i])
+      guess.call(keystream[i], i).each_with_index { |c, i| plaintexts[i] += c }
     end
 
-    ciphertexts.each { |s| p CryptUtil.xor(s, keystream) }
-  end
+    # Second round so that the guesses for early characters can be tempered with the frequencies of the guessed latter characters.
+    # and so a second order analysis can be performed
+    (0...max_length).each do |i|
+      second_guess = (0...256).min_by do |j|
+        Cryptanalysis::Frequency.english_score(plaintexts.zip(guess.call(j, i))
+          .map { |text, c| text.extend(Utils::StringUtil).replace_at(c, [i, text.size].min) }.join("\n"), max_order: 2, discount_punctuation: false)
+      end
+      guess.call(second_guess, i).each_with_index { |c, j| plaintexts[j] = plaintexts[j].extend(Utils::StringUtil).replace_at(c, [i, plaintexts[j].size].min) }
+    end
 
-  # Break fixed-nonce CTR statistically
-  def challenge20(filename)
-    key = Random.new.bytes(16)
-    ciphertexts = File.open(filename, &:read)
-      .each_line.map { |line| CryptUtil.ctr(Base64.decode64(line), key) }
-    min_length = ciphertexts.map(&:bytesize).min
-    Cryptanalysis.vigenere_decrypt(ciphertexts.map { |s| s[0, min_length] }.join, min_length)
-  end
-
-  # Implement the MT19937 Mersenne Twister RNG
-  def challenge21
-    # See mersenne_twister.rb
+    plaintexts
   end
 
   # Crack an MT19937 seed
-  def challenge22
-    mt = MersenneTwister.new
-    r = Random.new
-
-    # Seed mt with random, unknown time
-    print("Waiting to seed\n")
-    sleep(r.rand((40..1000)))
-    s = Time.now.to_i
-    mt.seed(s)
-    print("Seed chosen\n")
-    sleep(r.rand((40..1000)))
-
-    n = mt.rand
+  def challenge22(n)
     c = Time.now.to_i
-    guesses = (39..1000).map { |i| c - i }
-    guess = guesses.find { |i| mt.seed(i); mt.rand == n }
-    printf("guess: %s, actual: %d\n", guess.to_s, s)
-    if guess === s
-      p 'Success!'
-    end
+    1.upto(15).map { |i| c - i }.find { |i| MersenneTwister.new(i).rand == n }
   end
 
   # Clone an MT19937 RNG from its output
-  def challenge23
-    mt = MersenneTwister.new
+  def challenge23(mt)
     internal_state = (0...MersenneTwister::N).map { Cryptanalysis.mt_untemper(mt.rand) }
-
     mt_clone = MersenneTwister.new
     mt_clone.set_state(internal_state)
-
-    if 1000.times.all? { mt_clone.rand == mt.rand }
-      p 'Success!'
-    end
+    mt_clone
   end
 
   # Create the MT19937 stream cipher and break it
-  def challenge24
-    p 'Part 1: Brute-force 16-bit MT stream cipher using known plaintext suffix'
-    suffix = ?A * 14
-    r = Random.new
-    k = r.rand(0...2**16)
-    plaintext = r.bytes(r.rand(10...1000)) + suffix
-    ciphertext = CryptUtil.mt_cipher(plaintext, k)
-
-    guess = (0...2**16).find { |g| CryptUtil.mt_cipher(ciphertext, g).end_with?(suffix) }
-
-    printf("guess: %d, actual: %d\n", guess, k)
-    p guess === k ? 'Success!' : 'Failure!'
-
-    p 'Part 2: Detect if a password reset token was generated with MT19937 seeded with recent timestamp'
-
-    mt = MersenneTwister.new
-    c = Time.now.to_i
-
-    mt.seed(c)
-    time_token = mt.bytes(16)
-    random_token = r.bytes(16)
-    
-    detect = ->(t) do
-      mt = MersenneTwister.new
-      mt.seed(c)
-      t === mt.bytes(16)
-    end
-
-    p (detect.call(time_token) and !detect.call(random_token) ? 'Success' : 'Failure!')
-
+  def challenge24_part1(ciphertext, known_plaintext)
+    (0...2**16).find { |g| CryptUtil.mt_cipher(ciphertext, g).end_with?(known_plaintext) }
   end
 
+  def challenge24_part2(token)
+    c = Time.now.to_i
+    0.upto(100).any? { |i| MersenneTwister.new(c - i).bytes(16) == token }
+  end
 end

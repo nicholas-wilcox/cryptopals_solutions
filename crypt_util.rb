@@ -11,7 +11,7 @@ module CryptUtil
   end
 
   def xor(a, k)
-    xor_byte = proc { |x, i| x ^ k[i % k.length].ord }
+    xor_byte = proc { |x, i| x ^ k[i % k.size].ord }
     case
     when a.is_a?(String)
       a.bytes.map.with_index(&xor_byte).map(&:chr).join
@@ -22,13 +22,13 @@ module CryptUtil
     end
   end
 
-  # Implements PKCS#6 padding as per RFC 5652
+  # Implements PKCS#7 padding as per RFC 5652
   def pad(s, block_size)
     proc { |offset| s + (offset.chr * offset)}.call(-(s.size + 1) % block_size + 1)
   end
 
   def valid_pad?(s)
-    !s[-1].nil? && s[-1].ord <= s.size && s[s.size.-(s[-1].ord)..-1].each_char.extend(Utils::EnumUtil).same?
+    !s[-1].nil? && !s[-1].ord.zero? && s[-1].ord <= s.size && s[s.size.-(s[-1].ord)..-1].each_char.extend(Utils::EnumUtil).same?
   end
 
   def remove_pad(s)
@@ -69,24 +69,18 @@ module CryptUtil
     end.join + cipher.final
     mode == :decrypt ? remove_pad(out) : out
   end
-#
-#  def ctr(text, key, nonce=("\x00" * 16))
-#    nonce.extend(StringUtil)
-#    blocks(text, 16).each_with_index.map do |block, i|
-#      xor(block, aes_128_ecb(nonce.replace_at(((nonce[8].ord + i) % 256).chr, 8), key, :encrypt))
-#    end.join
-#  end
-#
-#  def mt_cipher(text, key)
-#    mt = MersenneTwister.new
-#    mt.seed(key & 0xFFFF)
-#    blocks(text.bytes, 4).map do |block|
-#      n = mt.rand
-#      bytes = 3.downto(0).map { |i| ((0xFF << (i * 8)) & n) >> (i * 8) }
-#      block.extend(ArrayUtil).bi_map(bytes) { |a, b| (a ^ b).chr }.join
-#    end.join
-#  end
-#
+
+  def ctr(text, key, nonce=("\x00" * 16))
+    nonce.extend(Utils::StringUtil)
+    text.extend(Utils::StringUtil).each_slice(16).with_index.map do |block, i|
+      xor(block, aes_128_ecb(nonce.replace_at(((nonce[8].ord + i) % 256).chr, 8), key, :encrypt))
+    end.join
+  end
+
+  def mt_cipher(text, key)
+    CryptUtil.xor(text, MersenneTwister.new(key & 0xFFFF).bytes(text.bytesize))
+  end
+
 #  def sha1_mac(key, message)
 #    SHA.sha1(key + message)
 #  end

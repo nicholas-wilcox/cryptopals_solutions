@@ -6,8 +6,4 @@ module Helpers
     Pathname.new(__dir__) + filename
   end
 
-  def seeded_rng
-    Random.new(RSpec.configuration.seed)
-  end
-
 end

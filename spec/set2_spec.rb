@@ -6,15 +6,16 @@ require_relative '../crypt_util'
 require 'openssl'
 
 RSpec.describe 'Set2' do
+
+  key = Random.bytes(16)
+  iv = Random.bytes(16)
+
   it 'Challenge 9: Implement PKCS#7 padding' do
     expect(CryptUtil.pad('YELLOW SUBMARINE', 20)).to eq("YELLOW SUBMARINE\x04\x04\x04\x04")
   end
 
   context 'Challenge 10: Implement CBC mode' do
-    r = seeded_rng
-    key = r.bytes(16)
-    iv = r.bytes(16)
-    text = r.bytes(r.rand(50..100))
+    text = Random.bytes(rand(50..100))
 
     it 'encrypts like OpenSSL::Cipher::AES' do
       cipher = OpenSSL::Cipher::AES.new(128, :CBC)
@@ -31,11 +32,8 @@ RSpec.describe 'Set2' do
   end
 
   context 'Challenge 11: And ECB/CBC detection oracle' do
-    r = seeded_rng
-    key = r.bytes(16)
-    iv = r.bytes(16)
-    prefix = r.bytes(r.rand(5..10))
-    suffix = r.bytes(r.rand(5..10))
+    prefix = Random.bytes(rand(5..10))
+    suffix = Random.bytes(rand(5..10))
     oracle_for = proc do |cipher|
       proc do |input|
         case cipher
@@ -58,13 +56,11 @@ RSpec.describe 'Set2' do
 
   it 'Challenge 12: Byte-at-a-time ECB decryption (Simple)' do
     text = path_to('data/challenge12.txt').open { |file| Utils::Base64.decode(file.read) }
-    key = seeded_rng.bytes(16)
     encryption_oracle = proc { |input| CryptUtil.aes_128_ecb(input + text, key, :encrypt) }
     expect(Set2.challenge12(encryption_oracle)).to eq(text)
   end
 
   it 'Challenge 13: ECB cut-and-paste' do
-    key = seeded_rng.bytes(16)
     profile_for = proc { |email| { email: email.tr('&=', ''), uid: 1234, role: 'user' }.extend(Utils::HashUtil).to_query }
     oracle = proc { |email| CryptUtil.aes_128_ecb(profile_for.call(email), key, :encrypt) }
     decrypt_profile = proc { |s| Utils::HashUtil.from_query(CryptUtil.aes_128_ecb(s, key, :decrypt)) }
@@ -74,9 +70,7 @@ RSpec.describe 'Set2' do
   
   it 'Challenge 14: Byte-at-a-time ECB decryption (Harder)' do
     text = path_to('data/challenge12.txt').open { |file| Utils::Base64.decode(file.read) }
-    r = seeded_rng
-    key = r.bytes(16)
-    prefix = r.bytes(r.rand(50..100))
+    prefix = Random.bytes(rand(50..100))
     encryption_oracle = proc { |input| CryptUtil.aes_128_ecb(prefix + input + text, key, :encrypt) }
     expect(Set2.challenge14(encryption_oracle)).to eq(text)
   end
@@ -95,7 +89,6 @@ RSpec.describe 'Set2' do
   it 'Challenge 16: CBC bitflipping attacks' do
     prefix = "comment1=cooking%20MCs;userdata="
     suffix = ";comment2=%20like%20a%20pound%20of%20bacon"
-    key = seeded_rng.bytes(16)
     oracle = proc { |input| CryptUtil.aes_128_cbc(prefix + input.gsub(/([;=])/, "'\\1'") + suffix, key, :encrypt) }
     is_admin = proc do |ciphertext|
       CryptUtil.aes_128_cbc(ciphertext, key, :decrypt).split(/(?<!');(?!')/)
@@ -103,7 +96,7 @@ RSpec.describe 'Set2' do
         .map { |k, v| [k.to_sym, v] }.to_h[:admin] == 'true'
     end
 
-    expect(is_admin.call(Set2.challenge16(oracle))).to be true
+    expect(is_admin.call(Set2.challenge16(oracle))).to be_truthy
   end
 
 end
