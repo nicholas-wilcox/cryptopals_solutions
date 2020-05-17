@@ -31,16 +31,7 @@ module Set3
 
     plaintexts
   end
-
-  ## Break fixed-nonce CTR statistically
-  #def challenge20(filename)
-  #  key = Random.new.bytes(16)
-  #  ciphertexts = File.open(filename, &:read)
-  #    .each_line.map { |line| CryptUtil.ctr(Base64.decode64(line), key) }
-  #  min_length = ciphertexts.map(&:bytesize).min
-  #  Cryptanalysis.vigenere_decrypt(ciphertexts.map { |s| s[0, min_length] }.join, min_length)
-  #end
-
+  
   ## Implement the MT19937 Mersenne Twister RNG
   #def challenge21
   #  # See mersenne_twister.rb

@@ -27,13 +27,27 @@ RSpec.describe 'Set3', :focus => true do
       .to eq('Yo, VIP Let\'s kick it Ice, Ice, baby Ice, Ice, baby ')
   end
 
-  context 'Challenge 19: Break fixed-nonce CTR mode using substitutions', :frequency_analysis => true do
+  context 'Challenge 19: Break fixed-nonce CTR mode using substitutions', :frequency_analysis => true, :long => true do
     it 'decrypts within a margin of error of 10 characters (case-insensitive)' do
       key = seeded_rng.bytes(16)
       texts = path_to('data/challenge19.txt').open.each_line.map(&Utils::Base64.method(:decode))
       ciphertexts = texts.map { |text| CryptUtil.ctr(text, key) }
       case_char_distance = proc { |s1, s2| s1.chars.zip(s2.chars).reject { |c1, c2| c1.casecmp(c2).zero? }.size }
       expect(Set3.challenge19(ciphertexts).zip(texts).sum(&case_char_distance)).to be <= 10
+    end
+  end
+
+  it 'Challenge 20: Break fixed-nonce CTR statistically', :frequency_analysis => true do
+    key = seeded_rng.bytes(16)
+    texts = path_to('data/challenge20.txt').open.each_line.map(&Utils::Base64.method(:decode))
+    min_length = texts.map(&:bytesize).min
+    texts.map! { |text| text[0, min_length] }
+    Cryptanalysis.vigenere_decrypt(
+      texts.map { |text| CryptUtil.ctr(text, key) }.join,
+      min_length,
+      exception_characters: ?/
+    ).extend(Utils::StringUtil).each_slice(min_length).zip(texts).each do |decrypted, original|
+      expect(decrypted.casecmp(original)).to be_zero, -> { "failed case-insensitive match: \n#{original}\n#{decrypted}" }
     end
   end
 
