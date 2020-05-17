@@ -1,4 +1,4 @@
-require_relative "integer_util"
+require_relative 'utils'
 
 class MersenneTwister
 
@@ -20,10 +20,10 @@ class MersenneTwister
   LOWER_MASK = (1 << R) - 1
   UPPER_MASK = W_MASK & ~LOWER_MASK
 
-  def initialize()
+  def initialize(s = nil)
     @mt = Array.new(N)
     @index = N + 1
-    seed(Time.now.to_i)
+    seed(s.nil? ? Time.now.to_i : s)
   end
 
   def seed(s)
@@ -51,9 +51,7 @@ class MersenneTwister
   end
 
   def bytes(n)
-    ((n / 4).times.map { IntegerUtil.bytes(rand, 4) } +
-     ((n % 4).zero? ? [] : IntegerUtil.bytes(rand, 4)[0, n % 4])
-    ).flatten.map(&:chr).join
+    n.to_f.fdiv(4).ceil.times.map { Utils::IntegerUtil.bytes(rand, 4) }.flatten.take(n).map(&:chr).join
   end
 
   # For education purposes as per Challenge 23

@@ -1,4 +1,5 @@
-require_relative "crypt_util"
+require_relative 'crypt_util'
+require_relative 'mersenne_twister'
 
 module Cryptanalysis
   module_function
@@ -59,17 +60,17 @@ module Cryptanalysis
     )
   end
 
-  #def mt_untemper(n)
-  #  n ^= (n >> MersenneTwister::L)
-  #  n ^= (n << MersenneTwister::T) & MersenneTwister::C
-  #  n ^= (n << MersenneTwister::S) & MersenneTwister::B
-  #  [14, 19, 21, 26, 28, 31].each do |i|
-  #    n ^= n[i - 14] << i
-  #  end
-  #  n ^= (n >> MersenneTwister::U)
-  #  0.upto(9).each { |i| n ^= n[i + 22] << i }
-  #  n
-  #end
+  def mt_untemper(n)
+    n ^= (n >> MersenneTwister::L)
+    n ^= (n << MersenneTwister::T) & MersenneTwister::C
+    n ^= (n << MersenneTwister::S) & MersenneTwister::B
+    [14, 19, 21, 26, 28, 31].each do |i|
+      n ^= n[i - 14] << i
+    end
+    n ^= (n >> MersenneTwister::U)
+    0.upto(9).each { |i| n ^= n[i + 22] << i }
+    n
+  end
 
 end
 

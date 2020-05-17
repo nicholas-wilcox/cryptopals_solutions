@@ -3,8 +3,9 @@
 require_relative '../utils'
 require_relative '../set3'
 require_relative '../cryptanalysis'
+require_relative '../mersenne_twister'
 
-RSpec.describe 'Set3', :focus => true do
+RSpec.describe 'Set3' do
 
   it 'Challenge 17: The CBC padding oracle' do
     r = seeded_rng
@@ -51,5 +52,40 @@ RSpec.describe 'Set3', :focus => true do
     end
   end
 
+  it 'Challenge 21: Implement the MT19937 Mersenne Twister RNG' do
+    mt = MersenneTwister.new(RSpec.configuration.seed)
+    srand(RSpec.configuration.seed)
+    5.times { expect(mt.rand).to eq(rand(0...2**32)) }
+  end
+
+  it 'Challenge 22: Crack an MT19937 seed', :long => true do
+    sleep(rand((4..10)))
+    s = Time.now.to_i
+    mt = MersenneTwister.new(s)
+    sleep(rand((4..10)))
+    expect(Set3.challenge22(mt.rand)).to eq(s)
+  end
+
+  it 'Challenge 23: Clone an MT19937 RNG from its output' do
+    mt = MersenneTwister.new(RSpec.configuration.seed)
+    mt_clone = Set3.challenge23(mt)
+    5.times { expect(mt.rand).to eq(mt_clone.rand) }
+  end
+
+  context 'Challenge 24: Create the MT19937 stream cipher and break it' do
+    it 'Part 1: Brute-force 16-bit MT stream cipher using known plaintext suffix' do
+      known_plaintext = ?A * 14
+      key = rand(0...2**16)
+      expect(Set3.challenge24_part1(CryptUtil.mt_cipher(Random.bytes(rand(10...1000)) + known_plaintext, key), known_plaintext)).to eq(key)
+    end
+
+    it 'Part 2: Detect if a password reset token was generated with MT19937 seeded with recent timestamp' do
+      mt = MersenneTwister.new(Time.now.to_i)
+      time_token = mt.bytes(16)
+      random_token = Random.bytes(16)
+      expect(Set3.challenge24_part2(time_token)).to be_truthy
+      expect(Set3.challenge24_part2(random_token)).to be_falsy
+    end
+  end
 end
 

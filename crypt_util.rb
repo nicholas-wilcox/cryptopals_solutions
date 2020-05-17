@@ -11,7 +11,7 @@ module CryptUtil
   end
 
   def xor(a, k)
-    xor_byte = proc { |x, i| x ^ k[i % k.length].ord }
+    xor_byte = proc { |x, i| x ^ k[i % k.size].ord }
     case
     when a.is_a?(String)
       a.bytes.map.with_index(&xor_byte).map(&:chr).join
@@ -22,7 +22,7 @@ module CryptUtil
     end
   end
 
-  # Implements PKCS#6 padding as per RFC 5652
+  # Implements PKCS#7 padding as per RFC 5652
   def pad(s, block_size)
     proc { |offset| s + (offset.chr * offset)}.call(-(s.size + 1) % block_size + 1)
   end
@@ -77,16 +77,10 @@ module CryptUtil
     end.join
   end
 
-#  def mt_cipher(text, key)
-#    mt = MersenneTwister.new
-#    mt.seed(key & 0xFFFF)
-#    blocks(text.bytes, 4).map do |block|
-#      n = mt.rand
-#      bytes = 3.downto(0).map { |i| ((0xFF << (i * 8)) & n) >> (i * 8) }
-#      block.extend(ArrayUtil).bi_map(bytes) { |a, b| (a ^ b).chr }.join
-#    end.join
-#  end
-#
+  def mt_cipher(text, key)
+    CryptUtil.xor(text, MersenneTwister.new(key & 0xFFFF).bytes(text.bytesize))
+  end
+
 #  def sha1_mac(key, message)
 #    SHA.sha1(key + message)
 #  end
