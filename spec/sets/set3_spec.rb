@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../utils'
-require_relative '../set3'
-require_relative '../cryptanalysis'
-require_relative '../mersenne_twister'
+require_relative '../../utils'
+require_relative '../../sets/set3'
+require_relative '../../cryptanalysis'
+require_relative '../../mersenne_twister'
 
 RSpec.describe 'Set3' do
 
