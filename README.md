@@ -1,4 +1,4 @@
-# Cryptopal Solutions
+# Cryptopals Solutions
 
 These are my solutions to the [Cryptopals Crypto Challenges](https://cryptopals.com/), implemented in [Ruby](https://www.ruby-lang.org/en/).
 
