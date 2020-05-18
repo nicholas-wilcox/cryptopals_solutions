@@ -81,23 +81,7 @@ module CryptUtil
     CryptUtil.xor(text, MersenneTwister.new(key & 0xFFFF).bytes(text.bytesize))
   end
 
-#  def sha1_mac(key, message)
-#    SHA.sha1(key + message)
-#  end
-#
-#  def authenticate_sha1_mac(mac, key, message)
-#    sha1_mac(key, message) === mac
-#  end
-#
-#  def md4_mac(key, message)
-#    MD4.md4(key + message)
-#  end
-#
-#  def authenticate_md4_mac(mac, key, message)
-#    md4_mac(key, message) === mac
-#  end
-#
-#  def hmac(key, message, hash, block_size, output_size)
+  #  def hmac(key, message, hash, block_size, output_size)
 #    key = hash.call(key) if key.bytesize > block_size
 #    key += "\x00" * (block_size - key.bytesize)
 #

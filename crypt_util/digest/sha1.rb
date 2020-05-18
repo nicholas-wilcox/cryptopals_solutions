@@ -37,7 +37,7 @@ module CryptUtil
         while (string.size % 64) != 56
           string += "\0"
         end
-        string = string.force_encoding('ascii-8bit') + [bit_len >> 32, bit_len & mask].pack("N2")
+        string = string.dup.force_encoding(Encoding::ASCII_8BIT) + [bit_len >> 32, bit_len & mask].pack("N2")
        
         if string.size % 64 != 0
           fail "failed to pad to correct length"
@@ -72,6 +72,14 @@ module CryptUtil
         end
        
         h.pack("N5")
+      end
+
+      def mac(key, message)
+        digest(key + message)
+      end
+
+      def authenticate_mac(mac, key, message)
+        mac == mac(key, message)
       end
     end
   end

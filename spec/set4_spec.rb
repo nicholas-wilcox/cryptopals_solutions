@@ -52,4 +52,28 @@ RSpec.describe 'Set4', :focus => true do
 
     expect(Set4.challenge27(oracle, verify)).to eq(key)
   end
+
+  it 'Challenge 28: Implement a SHA-1 keyed MAC' do
+    text = Random.bytes(rand(50..100))
+    mac = CryptUtil::Digest::SHA1.mac(key, text)
+    expect(CryptUtil::Digest::SHA1.authenticate_mac(mac, key, text)).to be_truthy
+    expect(CryptUtil::Digest::SHA1.authenticate_mac(mac, key, text + ?A)).to be_falsy
+  end
+
+  message = 'comment1=cooking%20MCs;userdata=foo;comment2=%20like%20a%20pound%20of%20bacon'
+  mac_key = IO.readlines('/usr/share/dict/words', chomp: true).sample
+ 
+  it 'Challenge 29: Break a SHA-1 keyed MAC using length extension' do
+    mac = CryptUtil::Digest::SHA1.mac(mac_key, message)
+    forged_mac, forged_message = Set4.challenge29(mac, message)
+    expect(forged_message).to end_with(';admin=true')
+    expect(CryptUtil::Digest::SHA1.authenticate_mac(forged_mac, mac_key, forged_message)).to be_truthy
+  end
+
+  it 'Challenge 30: Break a MD4 keyed MAC using length extension' do
+    mac = CryptUtil::Digest::MD4.mac(mac_key, message)
+    forged_mac, forged_message = Set4.challenge30(mac, message)
+    expect(forged_message).to end_with(';admin=true')
+    expect(CryptUtil::Digest::MD4.authenticate_mac(forged_mac, mac_key, forged_message)).to be_truthy
+  end
 end

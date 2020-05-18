@@ -73,6 +73,14 @@ module CryptUtil
        
         [a, b, c, d].pack("V4")
       end
+      
+      def mac(key, message)
+        digest(key + message)
+      end
+
+      def authenticate_mac(mac, key, message)
+        mac == mac(key, message)
+      end
     end
   end
 end
