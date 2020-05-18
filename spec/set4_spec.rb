@@ -27,9 +27,10 @@ RSpec.describe 'Set4', :focus => true do
     expect(Set4.challenge25(ciphertext, edit)).to eq(text)
   end
 
+  prefix = 'comment1=cooking%20MCs;userdata='
+  suffix = ';comment2=%20like%20a%20pound%20of%20bacon'
+
   it 'Challenge 26: CTR bitflipping' do
-    prefix = "comment1=cooking%20MCs;userdata="
-    suffix = ";comment2=%20like%20a%20pound%20of%20bacon"
     oracle = proc { |input| CryptUtil.ctr(prefix + input.gsub(/([;=])/, "'\\1'") + suffix, key) }
     is_admin = proc do |ciphertext|
       CryptUtil.ctr(ciphertext, key).split(/(?<!');(?!')/)
@@ -38,5 +39,17 @@ RSpec.describe 'Set4', :focus => true do
     end
 
     expect(is_admin.call(Set4.challenge26(oracle))).to be_truthy
+  end
+
+  it 'Challenge 27: Recover the key from CBC with IV=Key' do
+    oracle = proc { |input| CryptUtil.aes_128_cbc(prefix + input.gsub(/([;=])/, "'\\1'") + suffix, key, :encrypt, key) }
+    verify = proc do |ciphertext|
+      decrypted = CryptUtil.aes_128_cbc(ciphertext, key, :decrypt, key)
+      if !decrypted.each_codepoint.all? { |c| c < 0x7F }
+        raise Set4::InvalidPlaintextException.new(decrypted)
+      end
+    end
+
+    expect(Set4.challenge27(oracle, verify)).to eq(key)
   end
 end
