@@ -81,20 +81,7 @@ module CryptUtil
     CryptUtil.xor(text, MersenneTwister.new(key & 0xFFFF).bytes(text.bytesize))
   end
 
-  #  def hmac(key, message, hash, block_size, output_size)
-#    key = hash.call(key) if key.bytesize > block_size
-#    key += "\x00" * (block_size - key.bytesize)
-#
-#    o_key_pad = xor(key, "\x5c")
-#    i_key_pad = xor(key, "\x36")
-#
-#    hash.call(o_key_pad + hash.call(i_key_pad + message))
-#  end
-#
-#  def hmac_sha1(key, message)
-#    hmac(key, message, SHA.method(:sha1).to_proc, 64, 20)
-#  end
-  
 end
 
 require_relative 'crypt_util/digest'
+require_relative 'crypt_util/hmac'

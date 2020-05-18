@@ -4,7 +4,7 @@ require_relative '../utils'
 require_relative '../crypt_util'
 require_relative '../set4'
 
-RSpec.describe 'Set4', :focus => true do
+RSpec.describe 'Set4' do
 
   key = Random.bytes(16)
 
