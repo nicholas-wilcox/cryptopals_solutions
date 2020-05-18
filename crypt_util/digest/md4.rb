@@ -13,7 +13,7 @@ module CryptUtil
 
       # Calculates MD4 message digest of _string_. Returns binary digest.
       # For hexadecimal digest, use +*md4(str).unpack('H*')+.
-      def md4(string, initial_state = INITIAL_STATE, block_offset = 0)
+      def digest(string, initial_state = INITIAL_STATE, block_offset = 0)
         # functions
         mask = (1 << 32) - 1
         f = proc {|x, y, z| x & y | x.^(mask) & z}

@@ -17,7 +17,7 @@ module CryptUtil
       # This is a simple, pure-Ruby implementation of SHA-1, following
       # the algorithm in FIPS 180-1.
       #++
-      def sha1(string, initial_state = INITIAL_STATE, block_offset = 0)
+      def digest(string, initial_state = INITIAL_STATE, block_offset = 0)
         # functions and constants
         mask = 0xffffffff
         s = proc{|n, x| ((x << n) & mask) | (x >> (32 - n))}

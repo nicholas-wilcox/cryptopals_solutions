@@ -1,5 +1,4 @@
 require_relative 'crypt_util'
-require_relative 'sha'
 require_relative 'utils'
 require 'webrick'
 require 'net/http'
