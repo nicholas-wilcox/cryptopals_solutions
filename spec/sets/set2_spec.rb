@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../utils'
-require_relative '../set2'
-require_relative '../crypt_util'
+require_relative '../../utils'
+require_relative '../../sets/set2'
+require_relative '../../crypt_util'
 require 'openssl'
 
 RSpec.describe 'Set2' do

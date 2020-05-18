@@ -1,4 +1,4 @@
-require_relative 'crypt_util'
+require_relative '../crypt_util'
 
 module Set2
   module_function

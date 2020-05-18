@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../utils'
-require_relative '../set1'
+require_relative '../../utils'
+require_relative '../../sets/set1'
 
 RSpec.describe 'Set1' do
   it 'Challenge 1: Convert hex to base64' do

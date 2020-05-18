@@ -1,6 +1,6 @@
-require_relative 'utils'
-require_relative 'cryptanalysis'
-require_relative 'crypt_util'
+require_relative '../utils'
+require_relative '../cryptanalysis'
+require_relative '../crypt_util'
 require 'base64'
 
 module Set1

@@ -1,6 +1,5 @@
-require_relative 'crypt_util'
-require_relative 'utils'
-require 'webrick'
+require_relative '../crypt_util'
+require_relative '../utils'
 require 'net/http'
 
 module Set4

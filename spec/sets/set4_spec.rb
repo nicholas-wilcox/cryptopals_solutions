@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../utils'
-require_relative '../crypt_util'
-require_relative '../set4'
+require_relative '../../utils'
+require_relative '../../crypt_util'
+require_relative '../../sets/set4'
 require 'webrick'
 
 RSpec.describe 'Set4' do

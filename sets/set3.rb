@@ -1,7 +1,7 @@
-require_relative 'crypt_util'
-require_relative 'utils'
-require_relative 'cryptanalysis'
-require_relative 'mersenne_twister'
+require_relative '../crypt_util'
+require_relative '../utils'
+require_relative '../cryptanalysis'
+require_relative '../mersenne_twister'
 
 module Set3
   module_function
