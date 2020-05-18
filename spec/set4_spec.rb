@@ -3,6 +3,7 @@
 require_relative '../utils'
 require_relative '../crypt_util'
 require_relative '../set4'
+require 'webrick'
 
 RSpec.describe 'Set4' do
 
@@ -75,5 +76,56 @@ RSpec.describe 'Set4' do
     forged_mac, forged_message = Set4.challenge30(mac, message)
     expect(forged_message).to end_with(';admin=true')
     expect(CryptUtil::Digest::MD4.authenticate_mac(forged_mac, mac_key, forged_message)).to be_truthy
+  end
+
+  context 'HMAC-SHA1 timing leaks', :long => true, :skip => 'takes too long to ensure success' do
+    server_routine = proc do |server, delay|
+      trap('INT') { server.shutdown }
+      sig_bytes = proc { |sig| sig.unpack('a2' * (sig.size / 2)).map(&:hex) }
+      insecure_compare = lambda do |s1, s2|
+        s1.bytes.zip(s2.bytes).each do |a, b|
+          return false unless a == b
+          sleep(delay)
+        end
+        true
+      end
+
+      server.mount_proc('/test') do |req, res|
+        if insecure_compare.call(CryptUtil::HMAC.sha1(key, req.query['file']), sig_bytes.call(req.query['signature']).map(&:chr).join)
+          res.status = 200
+        else
+          res.status = 500
+        end
+      end
+
+      server.start
+    end
+
+    filename = 'asdf.txt'
+
+
+    it 'Challenge 31: Implement and break HMAC-SHA1 with an artificial timing leak' do
+      pending('takes a very long time to ensure success')
+      server = WEBrick::HTTPServer.new({
+        Port: 8080,
+        Logger: WEBrick::Log.new(nil, 0),
+        AccessLog: []
+      })
+      Thread.new(server, 0.1, &server_routine)
+      expect(Set4.challenge31(filename, 8080)).to eq(CryptUtil::HMAC.sha1(key, filename))
+    end
+
+    it 'Challenge 32: Implement and break HMAC-SHA1 with a slightly less artificial timing leak' do
+      pending('takes a very long time to ensure success')
+      server = WEBrick::HTTPServer.new({
+        Port: 8081,
+        Logger: WEBrick::Log.new(nil, 0),
+        AccessLog: []
+      })
+      Thread.new(server, 0.01, &server_routine)
+      expect(Set4.challenge31(filename, 8081)).to eq(CryptUtil::HMAC.sha1(key, filename))
+    end
+
+
   end
 end

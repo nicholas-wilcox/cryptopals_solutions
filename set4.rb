@@ -96,106 +96,37 @@ module Set4
     end
   end
 
-  ## Implement and break HMAC-SHA1 with an artificial timing leak
-  #def challenge31(dummy_file)
-  #  server = WEBrick::HTTPServer.new({
-  #    Port: 8080,
-  #    Logger: WEBrick::Log.new(nil, 0),
-  #    AccessLog: []
-  #  })
+  # Implement and break HMAC-SHA1 with an artificial timing leak
+  def challenge31(filename, port)
+    Net::HTTP.start('localhost', port) do |http|
+      is_ok = proc do |file, sig|
+        http.get(format('/test?file=%s&signature=%s', file, sig)).is_a?(Net::HTTPOK)
+      end
 
-  #  server_thread = Thread.new do
-  #    trap('INT') { server.shutdown }
-  #    key = Random.new.bytes(16)
-  #    sig_bytes = proc { |sig| sig.unpack('a2' * (sig.size / 2)).map(&:hex) }
-  #    insecure_compare = ->(s1, s2) {
-  #      s1.bytes.zip(s2.bytes).each do |a, b|
-  #        return false unless a == b
-  #        sleep(0.05)
-  #      end
-  #      return true
-  #    }
+      20.times.reduce('') do |signature, i|
+        signature + (0...256).max_by do |b|
+          start = Time.now
+          is_ok.call(filename, (signature + b.chr).unpack1('H*'))
+          Time.now - start
+        end.chr
+      end
+    end
+  end
 
-  #    server.mount_proc('/test') do |req, res|
-  #      if insecure_compare.call(CryptUtil.hmac_sha1(key, req.query["file"]), sig_bytes.call(req.query["signature"]).map(&:chr).join)
-  #        res.status = 200
-  #      else
-  #        res.status = 500
-  #      end
-  #    end
+  # Break HMAC-SHA1 with a slightly less artificial timing leak
+  def challenge32(filename, port)
+    Net::HTTP.start('localhost', port) do |http|
+      is_ok = proc do |file, sig|
+        http.get(format('/test?file=%s&signature=%s', file, sig)).is_a?(Net::HTTPOK)
+      end
 
-  #    server.start
-  #  end
-
-  #  Net::HTTP.start('localhost', 8080) do |http|
-  #    is_ok = proc do |file, sig|
-  #      http.get(format('/test?file=%s&signature=%s', file, sig)).is_a?(Net::HTTPOK)
-  #    end
-
-  #    signature = ''
-  #    20.times do |i|
-  #      signature += 256.times.max_by do |b|
-  #        start = Time.now
-  #        is_ok.call(dummy_file, (signature + b.chr).unpack1('H*'))
-  #        later = Time.now
-  #        (later - start)
-  #      end.chr
-  #    end
-
-  #    signature.unpack1('H*')
-  #  end
-  #end
-
-  ## Break HMAC-SHA1 with a slightly less artificial timing leak
-  #def challenge32(dummy_file)
-  #  server = WEBrick::HTTPServer.new({
-  #    Port: 8080,
-  #    Logger: WEBrick::Log.new(nil, 0),
-  #    AccessLog: []
-  #  })
-
-  #  server_thread = Thread.new do
-  #    trap('INT') { server.shutdown }
-  #    key = Random.new.bytes(16)
-  #    sig_bytes = proc { |sig| sig.unpack('a2' * (sig.size / 2)).map(&:hex) }
-  #    insecure_compare = ->(s1, s2) {
-  #      s1.bytes.zip(s2.bytes).each do |a, b|
-  #        return false unless a == b
-  #        sleep(0.005)
-  #      end
-  #      return true
-  #    }
-
-  #    server.mount_proc('/test') do |req, res|
-  #      if insecure_compare.call(CryptUtil.hmac_sha1(key, req.query["file"]), sig_bytes.call(req.query["signature"]).map(&:chr).join)
-  #        res.status = 200
-  #      else
-  #        res.status = 500
-  #      end
-  #    end
-
-  #    server.start
-  #  end
-
-  #  Net::HTTP.start('localhost', 8080) do |http|
-  #    is_ok = proc do |file, sig|
-  #      http.get(format('/test?file=%s&signature=%s', file, sig)).is_a?(Net::HTTPOK)
-  #    end
-
-  #    signature = ''
-  #    20.times do |i|
-  #      signature += 256.times.max_by do |b|
-  #        start = Time.now
-  #        10.times { is_ok.call(dummy_file, (signature + b.chr).unpack1('H*')) }
-  #        later = Time.now
-  #        (later - start)
-  #      end.chr
-  #      p signature
-  #    end
-
-  #    if is_ok.call(dummy_file, signature.unpack1('H*'))
-  #      p 'Success'
-  #    end
-  #  end
-  #end
+      20.times.reduce('') do |signature, i|
+        signature + (0...256).max_by do |b|
+          start = Time.now
+          10.times { is_ok.call(filename, (signature + b.chr).unpack1('H*')) }
+          Time.now - start
+        end.chr
+      end
+    end
+  end
 end
