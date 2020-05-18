@@ -112,3 +112,5 @@ module CryptUtil
 #  end
   
 end
+
+require_relative 'crypt_util/digest'
