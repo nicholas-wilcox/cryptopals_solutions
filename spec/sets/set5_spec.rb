@@ -2,6 +2,10 @@
 
 require_relative '../../sets/set5'
 require_relative '../../utils'
+require 'webrick'
+require 'net/http'
+require 'json'
+require_relative '../../crypt_util'
 
 RSpec.describe 'Set5' do
 
@@ -33,6 +37,23 @@ RSpec.describe 'Set5' do
       b_pub = Utils::MathUtil.modexp(g, b, p)
 
       expect(Utils::MathUtil.modexp(b_pub, a, p)).to eq(Utils::MathUtil.modexp(a_pub, b, p))
+    end
+  end
+
+  context 'Challenge 34: Implement a MITM key-fixing attack on Diffie-Hellman with parameter injection', :focus => true do
+    it 'performs Diffie-Hellman protocol' do
+      server_a = DiffieHellmanServer.new(8080, 'A')
+      server_b = DiffieHellmanServer.new(8081, 'B')
+
+      Thread.new { server_a.routine }
+      Thread.new { server_b.routine }
+      original = 'Hello, World!'
+      server_a.setMessage(original)
+
+      DiffieHellmanServer.exchange(server_a, server_b)
+      server_a.sendMessageTo(server_b)
+      expect(server_a.getMessage).to eq(original);
+      expect(server_b.getMessage).to eq(original);
     end
   end
 
