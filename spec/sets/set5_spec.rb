@@ -40,7 +40,7 @@ RSpec.describe 'Set5' do
     end
   end
 
-  context 'Challenge 34: Implement a MITM key-fixing attack on Diffie-Hellman with parameter injection', :focus => true do
+  context 'Challenge 34: Implement a MITM key-fixing attack on Diffie-Hellman with parameter injection' do
     it 'performs Diffie-Hellman protocol' do
       server_a = DiffieHellmanServer.new(8080, 'A')
       server_b = DiffieHellmanServer.new(8081, 'B')
@@ -52,8 +52,32 @@ RSpec.describe 'Set5' do
 
       DiffieHellmanServer.exchange(server_a, server_b)
       server_a.sendMessageTo(server_b)
-      expect(server_a.getMessage).to eq(original);
       expect(server_b.getMessage).to eq(original);
+      server_a.shutdown
+      server_b.shutdown
+    end
+
+    it 'performs MITM attack' do
+      server_a = DiffieHellmanServer.new(8080, 'A')
+      server_b = DiffieHellmanServer.new(8081, 'B')
+      mitm = DiffieHellmanServer.new(8082, 'M')
+      
+      Thread.new { server_a.routine }
+      Thread.new { server_b.routine }
+      Thread.new { mitm.routine }
+      
+      original = 'Hello, World!'
+      server_a.setMessage(original)
+      mitm.setPubKey(0)
+
+      DiffieHellmanServer.mitm(server_a, server_b, mitm)
+      expect(server_a.getMessage).to eq(original)
+      expect(server_b.getMessage).to eq(original)
+      expect(mitm.getMessage).to eq(original)
+
+      server_a.shutdown
+      server_b.shutdown
+      mitm.shutdown
     end
   end
 
