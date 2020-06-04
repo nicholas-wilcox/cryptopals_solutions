@@ -97,11 +97,45 @@ RSpec.describe 'Set5' do
   end
 
   it 'Challenge 35: Implement DH with negotiated groups, and break with malicious "g" parameters', :focus => true do
-    #TODO:
-    # - Refactor DH server interface to allow for group negotiation
-    # - Handshake with g' = 0 or +/-1 with both sides
-    # - Can force both session keys into either 0 or 1
-    #
+    s_a = DiffieHellmanServer.new(8080)
+    s_a.message = plaintext
+    s_b = DiffieHellmanServer.new(8081)
+    mitm = DiffieHellmanServer.new(8082)
+    
+    fake_g = 1
+
+    mitm.server.mount_proc('/negotiate') do |req, res|
+      request = JSON.parse(req.body)
+      ack = mitm.post_json('/negotiate', s_b.port, { p: request['p'], g: fake_g })
+      if (ack.is_a?(Net::HTTPOK))
+        res.status = 200
+      else
+        res.status = 500
+      end
+    end
+
+    mitm.server.mount_proc('/exchange') do |req, res|
+      res.body = mitm.post_text('/exchange', s_b.port, fake_g.to_s(16)).body
+    end
+
+    mitm.server.mount_proc('/receiveMessage') do |req|
+      mitm.post_text('/receiveMessage', s_b.port, req.body)
+      mitm.key_hash = CryptUtil::Digest::SHA1.digest(Utils::IntegerUtil.bytes(fake_g).map(&:chr).join)[0, 16]
+      mitm.message = mitm.decrypt(req.body.extend(Utils::HexString).to_ascii)
+    end
+
+    Thread.new { s_a.routine }
+    Thread.new { s_b.routine }
+    Thread.new { mitm.routine }
+
+    s_a.start_session(mitm)
+    s_a.send_message_to(mitm)
+    expect(s_b.message).to eq(plaintext)
+    expect(mitm.message).to eq(plaintext)
+
+    s_a.shutdown
+    s_b.shutdown
+    mitm.shutdown
   end
 
 

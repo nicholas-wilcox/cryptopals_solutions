@@ -37,7 +37,7 @@ class DiffieHellmanServer
 
   def reset_group(p = P, g = G)
     @p = p
-    @g = g
+    @g = g % @p
   end
 
   def reset_keys
