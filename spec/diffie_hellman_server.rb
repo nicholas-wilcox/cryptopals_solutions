@@ -32,7 +32,7 @@ class DiffieHellmanServer
   end
 
   def message
-    get_from('/getMessage', @port).body
+    get_from('/message', @port).body
   end
 
   def reset_group(p = P, g = G)
@@ -72,13 +72,7 @@ class DiffieHellmanServer
       res.body = @pub_key.to_s(16)
     end
 
-    @server.mount_proc('/receivePubKey') do |req|
-      @session_key = Utils::MathUtil.modexp(req.body.hex, @key, P)
-      @key_hash = CryptUtil::Digest::SHA1.digest(Utils::IntegerUtil.bytes(@session_key).map(&:chr).join)[0, 16]
-    end
-
-    @server.mount_proc('/sendPubKey') { |req| post_text('/receivePubKey', JSON.parse(req.body)['port'], @pub_key.to_s(16)) }
-    @server.mount_proc('/getMessage') { |req, res| res.body = @message }
+    @server.mount_proc('/message') { |req, res| res.body = @message }
     @server.mount_proc('/receiveMessage') { |req| @message = decrypt(req.body.extend(Utils::HexString).to_ascii) }
     @server.mount_proc('/sendMessage') do |req|
       post_text('/receiveMessage', JSON.parse(req.body)['port'], Utils::HexString.from_bytes(encrypt(@message).bytes))
