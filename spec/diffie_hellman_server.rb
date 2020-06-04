@@ -16,13 +16,12 @@ class DiffieHellmanServer
   G = 2
 
   attr_reader :server
-  attr_accessor :port 
+  attr_accessor :port, :key_hash 
   attr_writer :message, :pub_key
 
   def initialize(port)
     @port = port
     @session_key = nil
-    @key_hash = nil
 
     reset_group
     reset_keys
@@ -32,20 +31,8 @@ class DiffieHellmanServer
     mount
   end
 
-  def self.exchange(s1, s2)
-    Net::HTTP.start('localhost', s1.port) do |http|
-      http.post('/sendPubKey', { port: s2.port }.to_json, 'Content-Type' => 'application/json')
-    end
-
-    Net::HTTP.start('localhost', s2.port) do |http|
-      http.post('/sendPubKey', { port: s1.port }.to_json, 'Content-Type' => 'application/json')
-    end
-  end
-
-  def self.mitm(s1, s2, m)
-    self.exchange(s1, m)
-    self.exchange(s2, m)
-    s1.post_json('/mitm', m.port, { ciphertext: s1.encrypt(s1.message).unpack1('H*'), port: s2.port })
+  def message
+    get_from('/getMessage', @port).body
   end
 
   def reset_group(p = P, g = G)
@@ -96,13 +83,6 @@ class DiffieHellmanServer
     @server.mount_proc('/sendMessage') do |req|
       post_text('/receiveMessage', JSON.parse(req.body)['port'], Utils::HexString.from_bytes(encrypt(@message).bytes))
     end
-
-    @server.mount_proc('/mitm') do |req|
-      request = JSON.parse(req.body)
-      post_text('/receiveMessage', request['port'], request['ciphertext'])
-      @key_hash = CryptUtil::Digest::SHA1.digest(Utils::IntegerUtil.bytes(0).map(&:chr).join)[0, 16]
-      @message = decrypt(request['ciphertext'].extend(Utils::HexString).to_ascii)
-    end
   end
 
   def routine
@@ -133,19 +113,15 @@ class DiffieHellmanServer
     CryptUtil.aes_128_cbc(plaintext, @key_hash, :encrypt, iv) + iv
   end
 
-  def start_session(dest)
-    post_json('/startSession', @port, { port: dest.port })
-  end
-
   def decrypt(ciphertext)
     CryptUtil.aes_128_cbc(ciphertext[0...-16], @key_hash, :decrypt, ciphertext[-16, 16])
   end
 
-  def message
-    get_from('/getMessage', @port).body
+  def start_session(dest)
+    post_json('/startSession', @port, { port: dest.port })
   end
   
-  def sendMessageTo(serv)
+  def send_message_to(serv)
     post_json('/sendMessage', @port, { port: serv.port })
   end
 

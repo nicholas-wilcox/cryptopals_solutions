@@ -52,7 +52,7 @@ RSpec.describe 'Set5' do
       Thread.new { s_b.routine }
 
       s_a.start_session(s_b)
-      s_a.sendMessageTo(s_b)
+      s_a.send_message_to(s_b)
       expect(s_b.message).to eq(plaintext);
       s_a.shutdown
       s_b.shutdown
@@ -63,14 +63,30 @@ RSpec.describe 'Set5' do
       s_a.message = plaintext
       s_b = DiffieHellmanServer.new(8081)
       mitm = DiffieHellmanServer.new(8082)
-      mitm.pub_key = 0
+      
+      mitm.server.mount_proc('/negotiate') do |req, res|
+        request = JSON.parse(req.body)
+        ack = mitm.post_json('/negotiate', s_b.port, { p: request['p'], g: request['g'] })
+        if (ack.is_a?(Net::HTTPOK))
+          mitm.post_text('/exchange', s_b.port, '0')
+        end
+        res.status = 200
+      end
+
+      mitm.server.mount_proc('/exchange') { |req, res| res.body = '0' }
+
+      mitm.server.mount_proc('/receiveMessage') do |req|
+        mitm.post_text('/receiveMessage', s_b.port, req.body)
+        mitm.key_hash = CryptUtil::Digest::SHA1.digest(Utils::IntegerUtil.bytes(0).map(&:chr).join)[0, 16]
+        mitm.message = mitm.decrypt(req.body.extend(Utils::HexString).to_ascii)
+      end
 
       Thread.new { s_a.routine }
       Thread.new { s_b.routine }
       Thread.new { mitm.routine }
-      
 
-      DiffieHellmanServer.mitm(s_a, s_b, mitm)
+      s_a.start_session(mitm)
+      s_a.send_message_to(mitm)
       expect(s_b.message).to eq(plaintext)
       expect(mitm.message).to eq(plaintext)
 
