@@ -50,7 +50,7 @@ RSpec.describe 'Set5' do
       original = 'Hello, World!'
       server_a.setMessage(original)
 
-      DiffieHellmanServer.exchange(server_a, server_b)
+      server_a.start_session(server_b)
       server_a.sendMessageTo(server_b)
       expect(server_b.getMessage).to eq(original);
       server_a.shutdown
@@ -58,17 +58,17 @@ RSpec.describe 'Set5' do
     end
 
     it 'performs MITM attack' do
+      original = 'Hello, World!'
       server_a = DiffieHellmanServer.new(8080, 'A')
+      server_a.setMessage(original)
       server_b = DiffieHellmanServer.new(8081, 'B')
       mitm = DiffieHellmanServer.new(8082, 'M')
-      
+      mitm.setPubKey(0)
+
       Thread.new { server_a.routine }
       Thread.new { server_b.routine }
       Thread.new { mitm.routine }
       
-      original = 'Hello, World!'
-      server_a.setMessage(original)
-      mitm.setPubKey(0)
 
       DiffieHellmanServer.mitm(server_a, server_b, mitm)
       expect(server_a.getMessage).to eq(original)
@@ -79,6 +79,14 @@ RSpec.describe 'Set5' do
       server_b.shutdown
       mitm.shutdown
     end
+  end
+
+  it 'Challenge 35: Implement DH with negotiated groups, and break with malicious "g" parameters', :focus => true do
+    #TODO:
+    # - Refactor DH server interface to allow for group negotiation
+    # - Handshake with g' = 0 or +/-1 with both sides
+    # - Can force both session keys into either 0 or 1
+    #
   end
 
 

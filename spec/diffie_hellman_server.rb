@@ -18,12 +18,13 @@ class DiffieHellmanServer
   def initialize(port, name)
     @port = port
     @name = name
-    @key = rand(0...P)
-    @pub_key = Utils::MathUtil.modexp(G, @key, P)
     @session_key = nil
     @key_hash = nil
     @message = nil
+    @p = P
+    @g = G
 
+    reset_keys
     @server = WEBrick::HTTPServer.new({
       Port: @port
     })
@@ -40,12 +41,26 @@ class DiffieHellmanServer
   end
 
   def self.mitm(s1, s2, m)
-    m.setPubKey(0)
     self.exchange(s1, m)
     self.exchange(s2, m)
     Net::HTTP.start('localhost', m.port) do |http|
       http.post('/mitm', { ciphertext: s1.encrypt(s1.getMessage).unpack1('H*'), port: s2.port }.to_json, { 'Content-Type': 'application/json' })
     end
+  end
+
+  def reset_group(p = P, g = G)
+    @p = p
+    @g = g
+  end
+
+  def reset_keys
+    @key = rand(0...@p)
+    @pub_key = Utils::MathUtil.modexp(@g, @key, @p)
+  end
+
+  def establish_session_key(other_pub)
+    @session_key = Utils::MathUtil.modexp(other_pub, @key, @p)
+    @key_hash = CryptUtil::Digest::SHA1.digest(Utils::IntegerUtil.bytes(@session_key).map(&:chr).join)[0, 16]
   end
 
   def port
@@ -54,10 +69,26 @@ class DiffieHellmanServer
 
   def routine
     trap('INT') { @server.shutdown }
-    @server.mount_proc('/sendPubKey') do |req|
-      Net::HTTP.start('localhost', JSON.parse(req.body)['port']) do |http|
-        http.post('/receivePubKey', @pub_key.to_s(16), { 'Content-Type': 'text/plain' })
+
+    @server.mount_proc('/startSession') do |req|
+      request = JSON.parse(req.body)
+      ack = post_json('/negotiate', request['port'], { p: @p, g: @g })
+      if (ack.is_a?(Net::HTTPOK))
+        res = post_text('/exchange', request['port'], @pub_key.to_s(16))
+        establish_session_key(res.body.hex)
       end
+    end
+
+    @server.mount_proc('/negotiate') do |req, res|
+      request = JSON.parse(req.body)
+      reset_group(request['p'], request['g'])
+      reset_keys
+      res.status = 200
+    end
+
+    @server.mount_proc('/exchange') do |req, res|
+      establish_session_key(req.body.hex)
+      res.body = @pub_key.to_s(16)
     end
 
     @server.mount_proc('/receivePubKey') do |req|
@@ -65,38 +96,20 @@ class DiffieHellmanServer
       @key_hash = CryptUtil::Digest::SHA1.digest(Utils::IntegerUtil.bytes(@session_key).map(&:chr).join)[0, 16]
     end
 
-    @server.mount_proc('/getMessage') do |req, res|
-      res.body = @message
-    end
-
-    @server.mount_proc('/setMessage') do |req|
-      @message = req.body
-    end
-
-    @server.mount_proc('/setPubKey') do |req|
-      @pub_key = req.body.hex
-    end
+    @server.mount_proc('/sendPubKey') { |req| post_text('/receivePubKey', JSON.parse(req.body)['port'], @pub_key.to_s(16)) }
+    @server.mount_proc('/getMessage') { |req, res| res.body = @message }
+    @server.mount_proc('/setMessage') { |req| @message = req.body }
+    @server.mount_proc('/setPubKey') { |req| @pub_key = req.body.hex }
+    @server.mount_proc('/receiveMessage') { |req| @message = decrypt(req.body.extend(Utils::HexString).to_ascii) }
+    @server.mount_proc('/echoMessage') { |req, res| res.body = @message }
 
     @server.mount_proc('/sendMessage') do |req|
-      request = JSON.parse(req.body)
-      Net::HTTP.start('localhost', JSON.parse(req.body)['port']) do |http|
-        http.post('/receiveMessage', Utils::HexString.from_bytes(encrypt(@message).bytes), { 'Content-Type': 'text/plain' })
-      end
-    end
-
-    @server.mount_proc('/receiveMessage') do |req|
-      @message = decrypt(req.body.extend(Utils::HexString).to_ascii)
-    end
-
-    @server.mount_proc('/echoMessage') do |req, res|
-      res.body = @message
+      post_text('/receiveMessage', JSON.parse(req.body)['port'], Utils::HexString.from_bytes(encrypt(@message).bytes))
     end
 
     @server.mount_proc('/mitm') do |req|
       request = JSON.parse(req.body)
-      Net::HTTP.start('localhost', request['port']) do |http|
-        http.post('/receiveMessage', request['ciphertext'], { 'Content-Type': 'text/plain' })
-      end
+      post_text('/receiveMessage', request['port'], request['ciphertext'])
       @key_hash = CryptUtil::Digest::SHA1.digest(Utils::IntegerUtil.bytes(0).map(&:chr).join)[0, 16]
       @message = decrypt(request['ciphertext'].extend(Utils::HexString).to_ascii)
     end
@@ -104,9 +117,31 @@ class DiffieHellmanServer
     @server.start
   end
 
+  def post_text(endpoint, port, text)
+    Net::HTTP.start('localhost', port) do |http|
+      http.post(endpoint, text, { 'Content-Type': 'text/plain' })
+    end
+  end
+
+  def post_json(endpoint, port, obj)
+    Net::HTTP.start('localhost', port) do |http|
+      http.post(endpoint, obj.to_json, { 'Content-Type': 'application/json' })
+    end
+  end
+
+  def get_from(endpoint, port)
+    Net::HTTP.start('localhost', port) do |http|
+      http.get(endpoint)
+    end
+  end
+
   def encrypt(plaintext)
     iv = Random.bytes(16)
     CryptUtil.aes_128_cbc(plaintext, @key_hash, :encrypt, iv) + iv
+  end
+
+  def start_session(dest)
+    post_json('/startSession', @port, { port: dest.port })
   end
 
   def decrypt(ciphertext)
@@ -114,27 +149,19 @@ class DiffieHellmanServer
   end
 
   def getMessage
-    Net::HTTP.start('localhost', @port) do |http|
-      http.get('/getMessage').body
-    end
+    get_from('/getMessage', @port).body
   end
 
   def setMessage(s)
-    Net::HTTP.start('localhost', @port) do |http|
-      http.post('/setMessage', s, { 'Content-Type': 'text/plain' })
-    end
+    @message = s
   end
 
   def setPubKey(k)
-    Net::HTTP.start('localhost', @port) do |http|
-      http.post('/setPubKey', k.to_s(16), { 'Content-Type': 'text/plain' })
-    end
+    @pub_key = k
   end
 
   def sendMessageTo(serv)
-    Net::HTTP.start('localhost', @port) do |http|
-      http.post('/sendMessage', { port: serv.port }.to_json, { 'Content-Type': 'text/plain' })
-    end
+    post_json('/sendMessage', @port, { port: serv.port })
   end
 
   def shutdown
