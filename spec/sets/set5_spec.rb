@@ -9,6 +9,8 @@ require_relative '../../crypt_util'
 
 RSpec.describe 'Set5' do
 
+  plaintext = Random.bytes(rand(50..100))
+
   context 'Challenge 33: Implement Diffie-Hellman' do
     it 'small numbers' do
       p = 37
@@ -42,41 +44,38 @@ RSpec.describe 'Set5' do
 
   context 'Challenge 34: Implement a MITM key-fixing attack on Diffie-Hellman with parameter injection' do
     it 'performs Diffie-Hellman protocol' do
-      server_a = DiffieHellmanServer.new(8080, 'A')
-      server_b = DiffieHellmanServer.new(8081, 'B')
+      s_a = DiffieHellmanServer.new(8080)
+      s_a.message = plaintext
+      s_b = DiffieHellmanServer.new(8081)
 
-      Thread.new { server_a.routine }
-      Thread.new { server_b.routine }
-      original = 'Hello, World!'
-      server_a.setMessage(original)
+      Thread.new { s_a.routine }
+      Thread.new { s_b.routine }
 
-      server_a.start_session(server_b)
-      server_a.sendMessageTo(server_b)
-      expect(server_b.getMessage).to eq(original);
-      server_a.shutdown
-      server_b.shutdown
+      s_a.start_session(s_b)
+      s_a.sendMessageTo(s_b)
+      expect(s_b.message).to eq(plaintext);
+      s_a.shutdown
+      s_b.shutdown
     end
 
     it 'performs MITM attack' do
-      original = 'Hello, World!'
-      server_a = DiffieHellmanServer.new(8080, 'A')
-      server_a.setMessage(original)
-      server_b = DiffieHellmanServer.new(8081, 'B')
-      mitm = DiffieHellmanServer.new(8082, 'M')
-      mitm.setPubKey(0)
+      s_a = DiffieHellmanServer.new(8080)
+      s_a.message = plaintext
+      s_b = DiffieHellmanServer.new(8081)
+      mitm = DiffieHellmanServer.new(8082)
+      mitm.pub_key = 0
 
-      Thread.new { server_a.routine }
-      Thread.new { server_b.routine }
+      Thread.new { s_a.routine }
+      Thread.new { s_b.routine }
       Thread.new { mitm.routine }
       
 
-      DiffieHellmanServer.mitm(server_a, server_b, mitm)
-      expect(server_a.getMessage).to eq(original)
-      expect(server_b.getMessage).to eq(original)
-      expect(mitm.getMessage).to eq(original)
+      DiffieHellmanServer.mitm(s_a, s_b, mitm)
+      expect(s_b.message).to eq(plaintext)
+      expect(mitm.message).to eq(plaintext)
 
-      server_a.shutdown
-      server_b.shutdown
+      s_a.shutdown
+      s_b.shutdown
       mitm.shutdown
     end
   end
