@@ -96,42 +96,50 @@ RSpec.describe 'Set5' do
     end
   end
 
-  it 'Challenge 35: Implement DH with negotiated groups, and break with malicious "g" parameters', :focus => true do
+  it 'Challenge 35: Implement DH with negotiated groups, and break with malicious "g" parameters' do
     s_a = DiffieHellmanServer.new(8080)
     s_a.message = plaintext
     s_b = DiffieHellmanServer.new(8081)
     mitm = DiffieHellmanServer.new(8082)
     
-    fake_g = 1
-
-    mitm.server.mount_proc('/negotiate') do |req, res|
-      request = JSON.parse(req.body)
-      ack = mitm.post_json('/negotiate', s_b.port, { p: request['p'], g: fake_g })
-      if (ack.is_a?(Net::HTTPOK))
-        res.status = 200
-      else
-        res.status = 500
-      end
-    end
-
-    mitm.server.mount_proc('/exchange') do |req, res|
-      res.body = mitm.post_text('/exchange', s_b.port, fake_g.to_s(16)).body
-    end
-
-    mitm.server.mount_proc('/receiveMessage') do |req|
-      mitm.post_text('/receiveMessage', s_b.port, req.body)
-      mitm.key_hash = CryptUtil::Digest::SHA1.digest(Utils::IntegerUtil.bytes(fake_g).map(&:chr).join)[0, 16]
-      mitm.message = mitm.decrypt(req.body.extend(Utils::HexString).to_ascii)
-    end
-
     Thread.new { s_a.routine }
     Thread.new { s_b.routine }
     Thread.new { mitm.routine }
+    
+    (-1..1).each do |i|
+      fake_g = nil
+      prime = nil
+      pub_key = nil
+      mitm.server.mount_proc('/negotiate') do |req, res|
+        request = JSON.parse(req.body)
+        prime = request['p']
+        fake_g = i & prime
+        pub_key = Utils::MathUtil.modexp(fake_g, 2, prime)
+        ack = mitm.post_json('/negotiate', s_b.port, { p: prime, g: fake_g})
+        if (ack.is_a?(Net::HTTPOK))
+          res.status = 200
+        else
+          res.status = 500
+        end
+      end
 
-    s_a.start_session(mitm)
-    s_a.send_message_to(mitm)
-    expect(s_b.message).to eq(plaintext)
-    expect(mitm.message).to eq(plaintext)
+      mitm.server.mount_proc('/exchange') do |req, res|
+        res.body = mitm.post_text('/exchange', s_b.port, pub_key.to_s(16)).body
+        p res.body
+      end
+
+      mitm.server.mount_proc('/receiveMessage') do |req|
+        mitm.post_text('/receiveMessage', s_b.port, req.body)
+        mitm.key_hash = CryptUtil::Digest::SHA1.digest(Utils::IntegerUtil.bytes(pub_key).map(&:chr).join)[0, 16]
+        mitm.message = mitm.decrypt(req.body.extend(Utils::HexString).to_ascii)
+      end
+
+
+      s_a.start_session(mitm)
+      s_a.send_message_to(mitm)
+      expect(s_b.message).to eq(plaintext)
+      expect(mitm.message).to eq(plaintext)
+    end
 
     s_a.shutdown
     s_b.shutdown

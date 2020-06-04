@@ -17,7 +17,7 @@ class DiffieHellmanServer
 
   attr_reader :server
   attr_accessor :port, :key_hash 
-  attr_writer :message, :pub_key
+  attr_writer :message
 
   def initialize(port)
     @port = port
