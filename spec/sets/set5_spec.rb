@@ -9,6 +9,7 @@ require 'socket'
 require 'openssl'
 require_relative '../../crypt_util'
 require_relative '../diffie_hellman_server'
+require_relative '../../servers'
 
 RSpec.describe 'Set5' do
 
@@ -150,77 +151,19 @@ RSpec.describe 'Set5' do
   end
 
   context 'Secure Remote Protocal', :focus => true do
-    n = ('ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd1' +
-         '29024e088a67cc74020bbea63b139b22514a08798e3404dd' +
-         'ef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245' +
-         'e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7ed' +
-         'ee386bfb5a899fa5ae9f24117c4b1fe649286651ece45b3d' +
-         'c2007cb8a163bf0598da48361c55d39a69163fa8fd24cf5f' +
-         '83655d23dca3ad961c62f356208552bb9ed529077096966d' +
-         '670c354e4abc9804f1746c08ca237327ffffffffffffffff').hex
-    g = 2
-    k = 3
-    email = 'firstname.lastname@gmail.com'
+    username = 'firstname.lastname@gmail.com'
     password = 'password123'
 
-    hash = proc { |*args| OpenSSL::Digest::SHA256.hexdigest(args.map(&:to_s).join) }
-    modexp_n = proc { |x, e| Utils::MathUtil.modexp(x, e, n) }
-    hmac = proc { |key, m| OpenSSL::HMAC.digest('sha256', key, m) }
+    srp_server = Servers::SRPServer.new(2000)
+    srp_server.add_login(username, password)
+    Thread.new { srp_server.routine }
     
-    Thread.new do
-      server = TCPServer.new(2000)
-      password_table = { email => password }
-      loop do
-        Thread.start(server.accept) do |client|
-          b = rand(0...n)
-          salt = Random.bytes(8)
-
-          username = client.gets.chomp
-          v = modexp_n.call(g, hash.call(salt, password_table[username]).hex)
-          b_pub = modexp_n.call(g, b).+(k * v) % n
-
-          a_pub = client.gets.chomp.hex
-          client.puts Utils::HexString.from_bytes(salt.bytes)
-          client.puts b_pub.to_s(16)
-          u = hash.call(a_pub.to_s, b_pub.to_s).hex
-          key = hash.call(modexp_n.call(a_pub * modexp_n.call(v, u), b))
-          client.puts client.gets.chomp.extend(Utils::HexString).to_ascii == hmac.call(key, salt) ? 'OK' : 'NO'
-          client.close
-        end
-      end
-    end
-
     it 'Challenge 36: Implement Secure Remote Password (SRP)' do
-      a = rand(0...n)
-      s = TCPSocket.new('localhost', 2000)
-      s.puts email
-      a_pub = modexp_n.call(g, a)
-      s.puts a_pub.to_s(16)
-
-      salt = s.gets.chomp.extend(Utils::HexString).to_ascii
-      x = hash.call(salt, password).hex
-      
-      b_pub = s.gets.chomp.hex
-      u = hash.call(a_pub.to_s, b_pub.to_s).hex
-      key = hash.call(modexp_n.call(b_pub - (k * modexp_n.call(g, x)), (a + (u * x)) % n))
-      s.puts Utils::HexString.from_bytes(hmac.call(key, salt).bytes)
-      
-      expect(s.gets.chomp).to eq('OK')
+      expect(Servers::SRPServer.login(srp_server.port, username, password)).to eq(Servers::SRPServer::OK)
     end
     
     it 'Challenge 37: Break SRP with a zero key' do
-      s = TCPSocket.new('localhost', 2000)
-      s.puts email
-      a_pub = 0
-      s.puts a_pub.to_s(16)
-
-      salt = s.gets.chomp.extend(Utils::HexString).to_ascii
-      b_pub = s.gets.chomp.hex
-      
-      key = hash.call(0)
-      s.puts Utils::HexString.from_bytes(hmac.call(key, salt).bytes)
-      
-      expect(s.gets.chomp).to eq('OK')
+      expect(Set5.challenge37(srp_server.port, username)).to eq(Servers::SRPServer::OK)
     end
   end
 
