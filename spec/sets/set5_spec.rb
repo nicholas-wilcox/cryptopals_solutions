@@ -68,10 +68,10 @@ RSpec.describe 'Set5' do
     s_b.shutdown
   end
 
+  username = 'firstname.lastname@gmail.com'
+  password = 'password123'
+  
   context 'Secure Remote Protocal' do
-    username = 'firstname.lastname@gmail.com'
-    password = 'password123'
-
     srp_server = Servers::SRPServer.new(2000)
     srp_server.add_login(username, password)
     Thread.new { srp_server.routine }
@@ -82,6 +82,19 @@ RSpec.describe 'Set5' do
     
     it 'Challenge 37: Break SRP with a zero key' do
       expect(Set5.challenge37(srp_server.port, username)).to eq(Servers::SRPServer::OK)
+    end
+  end
+
+  context 'Challenge 38: Offline dictionary attack on simplified SRP' do
+    srp_server = Servers::SimpleSRPServer.new(2001)
+    srp_server.add_login(username, password)
+    Thread.new { srp_server.routine }
+    
+    it 'Perform Simple SRP login' do
+      expect(Servers::SimpleSRPServer.login(srp_server.port, username, password)).to eq(Servers::SRPServer::OK)
+    end
+    
+    it 'MITM attack' do
     end
   end
 

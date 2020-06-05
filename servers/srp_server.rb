@@ -48,7 +48,7 @@ module Servers
       s.puts hmac(key, salt)
       s.gets.chomp
     end
-
+    
     attr_reader :port
 
     def initialize(port)
