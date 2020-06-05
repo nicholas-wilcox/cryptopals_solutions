@@ -8,6 +8,7 @@ require 'json'
 require 'socket'
 require 'openssl'
 require_relative '../../crypt_util'
+require_relative '../diffie_hellman_server'
 
 RSpec.describe 'Set5' do
 
@@ -159,34 +160,33 @@ RSpec.describe 'Set5' do
          '670c354e4abc9804f1746c08ca237327ffffffffffffffff').hex
     g = 2
     k = 3
-    email = 'user.a@gmail.com'
+    email = 'firstname.lastname@gmail.com'
     password = 'password123'
 
-    hash = proc { |*args| OpenSSL::Digest::SHA256.digest(args.join) }
+    hash = proc { |*args| OpenSSL::Digest::SHA256.hexdigest(args.map(&:to_s).join) }
     modexp_n = proc { |x, e| Utils::MathUtil.modexp(x, e, n) }
     hmac = proc { |key, m| OpenSSL::HMAC.digest('sha256', key, m) }
-
+    
     Thread.new do
-      password_table = { email => password }
       server = TCPServer.new(2000)
-      b = rand(0...n)
-
+      password_table = { email => password }
       loop do
-        client = server.accept
-        salt = Random.bytes(8)
-        
-        username = client.gets.chomp
-        v = modexp_n.call(g, hash.call(salt, password_table[username]).hex)
-        b_pub = modexp_n.call(g, b).+(k * v) % n
+        Thread.start(server.accept) do |client|
+          b = rand(0...n)
+          salt = Random.bytes(8)
 
-        a_pub = client.gets.chomp.hex
-        client.puts salt
-        client.puts b_pub.to_s(16)
-        u = hash.call(a_pub.to_s, b_pub.to_s).hex
-        key = hash.call(modexp_n.call(a_pub * modexp_n.call(v, u), b).to_s)
-        
-        client.puts client.gets.chomp == hmac.call(key, salt) ? 'OK' : 'NO'
-        client.close
+          username = client.gets.chomp
+          v = modexp_n.call(g, hash.call(salt, password_table[username]).hex)
+          b_pub = modexp_n.call(g, b).+(k * v) % n
+
+          a_pub = client.gets.chomp.hex
+          client.puts Utils::HexString.from_bytes(salt.bytes)
+          client.puts b_pub.to_s(16)
+          u = hash.call(a_pub.to_s, b_pub.to_s).hex
+          key = hash.call(modexp_n.call(a_pub * modexp_n.call(v, u), b))
+          client.puts client.gets.chomp.extend(Utils::HexString).to_ascii == hmac.call(key, salt) ? 'OK' : 'NO'
+          client.close
+        end
       end
     end
 
@@ -197,36 +197,29 @@ RSpec.describe 'Set5' do
       a_pub = modexp_n.call(g, a)
       s.puts a_pub.to_s(16)
 
-      salt = s.gets.chomp
+      salt = s.gets.chomp.extend(Utils::HexString).to_ascii
       x = hash.call(salt, password).hex
       
       b_pub = s.gets.chomp.hex
       u = hash.call(a_pub.to_s, b_pub.to_s).hex
       key = hash.call(modexp_n.call(b_pub - (k * modexp_n.call(g, x)), (a + (u * x)) % n))
-      s.puts hmac.call(key, salt)
+      s.puts Utils::HexString.from_bytes(hmac.call(key, salt).bytes)
       
       expect(s.gets.chomp).to eq('OK')
     end
     
     it 'Challenge 37: Break SRP with a zero key' do
-      password = 'password123'
-      a = rand(0...n)
       s = TCPSocket.new('localhost', 2000)
-      s.puts 'user.a@gmail.com'
-
-      a_pub = Utils::MathUtil.modexp(g, a, n)
+      s.puts email
+      a_pub = 0
       s.puts a_pub.to_s(16)
 
-      salt = s.gets.chomp
+      salt = s.gets.chomp.extend(Utils::HexString).to_ascii
       b_pub = s.gets.chomp.hex
-
-      u = OpenSSL::Digest::SHA256.digest(a_pub.to_s(16) + b_pub.to_s(16)).hex
-
-      x = OpenSSL::Digest::SHA256.digest(salt + password).hex
-      secret = Utils::MathUtil.modexp(b_pub - (k * Utils::MathUtil.modexp(g, x, n)), (a + (u * x)) % n, n)
-      key = OpenSSL::Digest::SHA256.digest(secret.to_s)
-
-      s.puts OpenSSL::HMAC.digest('sha256', key, salt)
+      
+      key = hash.call(0)
+      s.puts Utils::HexString.from_bytes(hmac.call(key, salt).bytes)
+      
       expect(s.gets.chomp).to eq('OK')
     end
   end
