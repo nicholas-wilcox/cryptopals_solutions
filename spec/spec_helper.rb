@@ -102,6 +102,5 @@ require_relative 'helpers'
 config.include(Helpers)
 config.extend(Helpers)
 
-require_relative 'diffie_hellman_server'
 
 end
