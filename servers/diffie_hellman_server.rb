@@ -97,8 +97,6 @@ module Servers
 
     def routine
       trap('INT') { @server.shutdown }
-      puts 'hello'
-      puts @port
       @server.start
     end
 
