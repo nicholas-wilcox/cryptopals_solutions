@@ -159,51 +159,52 @@ RSpec.describe 'Set5' do
          '670c354e4abc9804f1746c08ca237327ffffffffffffffff').hex
     g = 2
     k = 3
+    email = 'user.a@gmail.com'
+    password = 'password123'
+
+    hash = proc { |*args| OpenSSL::Digest::SHA256.digest(args.join) }
+    modexp_n = proc { |x, e| Utils::MathUtil.modexp(x, e, n) }
+    hmac = proc { |key, m| OpenSSL::HMAC.digest('sha256', key, m) }
 
     Thread.new do
-      password_table = { 'user.a@gmail.com' => 'password123' }
+      password_table = { email => password }
       server = TCPServer.new(2000)
       b = rand(0...n)
+
       loop do
         client = server.accept
         salt = Random.bytes(8)
-        email = client.gets.chomp
-        v = Utils::MathUtil.modexp(g, OpenSSL::Digest::SHA256.digest(salt + password_table[email]).hex, n)
+        
+        username = client.gets.chomp
+        v = modexp_n.call(g, hash.call(salt, password_table[username]).hex)
+        b_pub = modexp_n.call(g, b).+(k * v) % n
 
         a_pub = client.gets.chomp.hex
-        b_pub = ((k * v) + Utils::MathUtil.modexp(g, b, n)) % n
         client.puts salt
         client.puts b_pub.to_s(16)
-
-        u = OpenSSL::Digest::SHA256.digest(a_pub.to_s(16) + b_pub.to_s(16)).hex
-        secret = Utils::MathUtil.modexp(a_pub * Utils::MathUtil.modexp(v, u, n), b, n)
-        key = OpenSSL::Digest::SHA256.digest(secret.to_s)
+        u = hash.call(a_pub.to_s, b_pub.to_s).hex
+        key = hash.call(modexp_n.call(a_pub * modexp_n.call(v, u), b).to_s)
         
-        client.puts client.gets.chomp == OpenSSL::HMAC.digest('sha256', key, salt) ? 'OK' : 'NO'
-
+        client.puts client.gets.chomp == hmac.call(key, salt) ? 'OK' : 'NO'
         client.close
       end
     end
 
     it 'Challenge 36: Implement Secure Remote Password (SRP)' do
-      password = 'password123'
       a = rand(0...n)
       s = TCPSocket.new('localhost', 2000)
-      s.puts 'user.a@gmail.com'
-
-      a_pub = Utils::MathUtil.modexp(g, a, n)
+      s.puts email
+      a_pub = modexp_n.call(g, a)
       s.puts a_pub.to_s(16)
 
       salt = s.gets.chomp
+      x = hash.call(salt, password).hex
+      
       b_pub = s.gets.chomp.hex
-
-      u = OpenSSL::Digest::SHA256.digest(a_pub.to_s(16) + b_pub.to_s(16)).hex
-
-      x = OpenSSL::Digest::SHA256.digest(salt + password).hex
-      secret = Utils::MathUtil.modexp(b_pub - (k * Utils::MathUtil.modexp(g, x, n)), (a + (u * x)) % n, n)
-      key = OpenSSL::Digest::SHA256.digest(secret.to_s)
-
-      s.puts OpenSSL::HMAC.digest('sha256', key, salt)
+      u = hash.call(a_pub.to_s, b_pub.to_s).hex
+      key = hash.call(modexp_n.call(b_pub - (k * modexp_n.call(g, x)), (a + (u * x)) % n))
+      s.puts hmac.call(key, salt)
+      
       expect(s.gets.chomp).to eq('OK')
     end
     
