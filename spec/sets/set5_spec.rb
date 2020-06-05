@@ -8,7 +8,6 @@ require 'json'
 require 'socket'
 require 'openssl'
 require_relative '../../crypt_util'
-require_relative '../diffie_hellman_server'
 require_relative '../../servers'
 
 RSpec.describe 'Set5' do
@@ -48,9 +47,9 @@ RSpec.describe 'Set5' do
 
   context 'Challenge 34: Implement a MITM key-fixing attack on Diffie-Hellman with parameter injection' do
     it 'performs Diffie-Hellman protocol' do
-      s_a = DiffieHellmanServer.new(8080)
+      s_a = Servers::DiffieHellmanServer.new(8080)
       s_a.message = plaintext
-      s_b = DiffieHellmanServer.new(8081)
+      s_b = Servers::DiffieHellmanServer.new(8081)
 
       Thread.new { s_a.routine }
       Thread.new { s_b.routine }
@@ -63,10 +62,10 @@ RSpec.describe 'Set5' do
     end
 
     it 'performs MITM attack' do
-      s_a = DiffieHellmanServer.new(8080)
+      s_a = Servers::DiffieHellmanServer.new(8080)
       s_a.message = plaintext
-      s_b = DiffieHellmanServer.new(8081)
-      mitm = DiffieHellmanServer.new(8082)
+      s_b = Servers::DiffieHellmanServer.new(8081)
+      mitm = Servers::DiffieHellmanServer.new(8082)
       
       mitm.server.mount_proc('/negotiate') do |req, res|
         request = JSON.parse(req.body)
@@ -101,10 +100,10 @@ RSpec.describe 'Set5' do
   end
 
   it 'Challenge 35: Implement DH with negotiated groups, and break with malicious "g" parameters' do
-    s_a = DiffieHellmanServer.new(8080)
+    s_a = Servers::DiffieHellmanServer.new(8080)
     s_a.message = plaintext
-    s_b = DiffieHellmanServer.new(8081)
-    mitm = DiffieHellmanServer.new(8082)
+    s_b = Servers::DiffieHellmanServer.new(8081)
+    mitm = Servers::DiffieHellmanServer.new(8082)
     
     Thread.new { s_a.routine }
     Thread.new { s_b.routine }
@@ -150,7 +149,7 @@ RSpec.describe 'Set5' do
     mitm.shutdown
   end
 
-  context 'Secure Remote Protocal', :focus => true do
+  context 'Secure Remote Protocal' do
     username = 'firstname.lastname@gmail.com'
     password = 'password123'
 
