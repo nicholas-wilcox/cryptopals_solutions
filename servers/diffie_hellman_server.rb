@@ -1,5 +1,6 @@
 require 'webrick'
 require 'net/http'
+require 'json'
 require_relative '../crypt_util'
 require_relative '../utils'
 
@@ -19,11 +20,11 @@ module Servers
 
     attr_reader :server
     attr_accessor :port, :key_hash 
-    attr_writer :message
 
-    def initialize(port)
+    def initialize(port, message = '')
       @port = port
       @session_key = nil
+      @message = message
 
       reset_group
       reset_keys
@@ -35,6 +36,10 @@ module Servers
 
     def message
       get_from('/message', @port).body
+    end
+
+    def message=(value)
+      post_text('/message', @port, value).body
     end
 
     def reset_group(p = P, g = G)
@@ -74,8 +79,17 @@ module Servers
         res.body = @pub_key.to_s(16)
       end
 
-      @server.mount_proc('/message') { |req, res| res.body = @message }
+      @server.mount_proc('/message') do |req, res|
+        case req.request_method
+        when 'POST'
+          @message = req.body
+        when 'GET'
+          res.body = @message
+        end
+      end
+
       @server.mount_proc('/receiveMessage') { |req| @message = decrypt(req.body.extend(Utils::HexString).to_ascii) }
+
       @server.mount_proc('/sendMessage') do |req|
         post_text('/receiveMessage', JSON.parse(req.body)['port'], Utils::HexString.from_bytes(encrypt(@message).bytes))
       end
@@ -83,6 +97,8 @@ module Servers
 
     def routine
       trap('INT') { @server.shutdown }
+      puts 'hello'
+      puts @port
       @server.start
     end
 

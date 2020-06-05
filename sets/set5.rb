@@ -1,5 +1,8 @@
+require 'json'
 require 'net/http'
+require 'socket'
 require_relative '../servers'
+require_relative '../crypt_util'
 require_relative '../utils'
 
 module Set5
@@ -63,7 +66,7 @@ module Set5
     s.puts 0.to_s(16)
 
     salt = s.gets.chomp.extend(Utils::HexString).to_ascii
-    b_pub = s.gets.chomp.hex
+    s.gets.chomp.hex # b_pub
     key = Servers::SRPServer.hash(0)
     s.puts Servers::SRPServer.hmac(key, salt)
 
