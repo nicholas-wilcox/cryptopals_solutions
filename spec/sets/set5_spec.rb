@@ -5,6 +5,8 @@ require_relative '../../utils'
 require 'webrick'
 require 'net/http'
 require 'json'
+require 'socket'
+require 'openssl'
 require_relative '../../crypt_util'
 
 RSpec.describe 'Set5' do
@@ -146,5 +148,86 @@ RSpec.describe 'Set5' do
     mitm.shutdown
   end
 
+  context 'Secure Remote Protocal', :focus => true do
+    n = ('ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd1' +
+         '29024e088a67cc74020bbea63b139b22514a08798e3404dd' +
+         'ef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245' +
+         'e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7ed' +
+         'ee386bfb5a899fa5ae9f24117c4b1fe649286651ece45b3d' +
+         'c2007cb8a163bf0598da48361c55d39a69163fa8fd24cf5f' +
+         '83655d23dca3ad961c62f356208552bb9ed529077096966d' +
+         '670c354e4abc9804f1746c08ca237327ffffffffffffffff').hex
+    g = 2
+    k = 3
+
+    Thread.new do
+      password_table = { 'user.a@gmail.com' => 'password123' }
+      server = TCPServer.new(2000)
+      b = rand(0...n)
+      loop do
+        client = server.accept
+        salt = Random.bytes(8)
+        email = client.gets.chomp
+        v = Utils::MathUtil.modexp(g, OpenSSL::Digest::SHA256.digest(salt + password_table[email]).hex, n)
+
+        a_pub = client.gets.chomp.hex
+        b_pub = ((k * v) + Utils::MathUtil.modexp(g, b, n)) % n
+        client.puts salt
+        client.puts b_pub.to_s(16)
+
+        u = OpenSSL::Digest::SHA256.digest(a_pub.to_s(16) + b_pub.to_s(16)).hex
+        secret = Utils::MathUtil.modexp(a_pub * Utils::MathUtil.modexp(v, u, n), b, n)
+        key = OpenSSL::Digest::SHA256.digest(secret.to_s)
+        
+        client.puts client.gets.chomp == OpenSSL::HMAC.digest('sha256', key, salt) ? 'OK' : 'NO'
+
+        client.close
+      end
+    end
+
+    it 'Challenge 36: Implement Secure Remote Password (SRP)' do
+      password = 'password123'
+      a = rand(0...n)
+      s = TCPSocket.new('localhost', 2000)
+      s.puts 'user.a@gmail.com'
+
+      a_pub = Utils::MathUtil.modexp(g, a, n)
+      s.puts a_pub.to_s(16)
+
+      salt = s.gets.chomp
+      b_pub = s.gets.chomp.hex
+
+      u = OpenSSL::Digest::SHA256.digest(a_pub.to_s(16) + b_pub.to_s(16)).hex
+
+      x = OpenSSL::Digest::SHA256.digest(salt + password).hex
+      secret = Utils::MathUtil.modexp(b_pub - (k * Utils::MathUtil.modexp(g, x, n)), (a + (u * x)) % n, n)
+      key = OpenSSL::Digest::SHA256.digest(secret.to_s)
+
+      s.puts OpenSSL::HMAC.digest('sha256', key, salt)
+      expect(s.gets.chomp).to eq('OK')
+    end
+    
+    it 'Challenge 37: Break SRP with a zero key' do
+      password = 'password123'
+      a = rand(0...n)
+      s = TCPSocket.new('localhost', 2000)
+      s.puts 'user.a@gmail.com'
+
+      a_pub = Utils::MathUtil.modexp(g, a, n)
+      s.puts a_pub.to_s(16)
+
+      salt = s.gets.chomp
+      b_pub = s.gets.chomp.hex
+
+      u = OpenSSL::Digest::SHA256.digest(a_pub.to_s(16) + b_pub.to_s(16)).hex
+
+      x = OpenSSL::Digest::SHA256.digest(salt + password).hex
+      secret = Utils::MathUtil.modexp(b_pub - (k * Utils::MathUtil.modexp(g, x, n)), (a + (u * x)) % n, n)
+      key = OpenSSL::Digest::SHA256.digest(secret.to_s)
+
+      s.puts OpenSSL::HMAC.digest('sha256', key, salt)
+      expect(s.gets.chomp).to eq('OK')
+    end
+  end
 
 end
