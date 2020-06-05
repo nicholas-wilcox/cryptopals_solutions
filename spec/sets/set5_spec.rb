@@ -50,17 +50,35 @@ RSpec.describe 'Set5' do
       mitm.shutdown
     end
 
-    it 'Challenge 35: Implement DH with negotiated groups, and break with malicious "g" parameters' do
-      (-1..1).each do |i|
+    context 'Challenge 35: Implement DH with negotiated groups, and break with malicious "g" parameters' do
+      mitm = nil
+      after(:example) { mitm.shutdown }
+
+      fake_g_mitm = lambda do |i|
         mitm = Set5.challenge35(8082, s_b.port, i)
         Thread.new { mitm.routine }
 
         s_a.start_session(mitm)
         s_a.send_message_to(mitm)
-        expect(s_b.message).to eq(plaintext)
-        expect(mitm.message).to eq(plaintext)
-        mitm.shutdown
-        s_b.message = ''
+        return mitm.message, s_b.message
+      end
+
+      it 'g = 0' do
+        mitm_message, b_message = fake_g_mitm.call(0)
+        expect(b_message).to eq(plaintext)
+        expect(mitm_message).to eq(plaintext)
+      end
+
+      it 'g = 1' do
+        mitm_message, b_message = fake_g_mitm.call(1)
+        expect(b_message).to eq(plaintext)
+        expect(mitm_message).to eq(plaintext)
+      end
+
+      it 'g = -1' do
+        mitm_message, b_message = fake_g_mitm.call(-1)
+        expect(b_message).to eq(plaintext)
+        expect(mitm_message).to eq(plaintext)
       end
     end
 
