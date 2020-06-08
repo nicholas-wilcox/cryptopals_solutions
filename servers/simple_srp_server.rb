@@ -25,9 +25,8 @@ module Servers
     end
     
     def routine
-      server = TCPServer.new(@port)
       loop do
-        Thread.start(server.accept) do |client|
+        Thread.start(@server.accept) do |client|
           trap('INT') do
             client.close
             break

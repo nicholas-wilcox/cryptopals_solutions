@@ -104,15 +104,19 @@ RSpec.describe 'Set5' do
   end
 
   context 'Challenge 38: Offline dictionary attack on simplified SRP' do
-    srp_server = Servers::SimpleSRPServer.new(2001)
-    srp_server.add_login(username, password)
-    Thread.new { srp_server.routine }
-    
     it 'Perform Simple SRP login' do
+      srp_server = Servers::SimpleSRPServer.new(2001)
+      srp_server.add_login(username, password)
+      Thread.new { srp_server.routine }
       expect(Servers::SimpleSRPServer.login(srp_server.port, username, password)).to eq(Servers::SRPServer::OK)
     end
     
     it 'MITM attack' do
+      password = IO.readlines('/usr/share/dict/words', chomp: true).sample
+      mitm_thread = Thread.new { Set5.challenge38(2002) }
+      sleep(1) # Allow time for MITM server to activate
+      Servers::SimpleSRPServer.login(2002, username, password)
+      expect(mitm_thread.value).to eq(password)
     end
   end
 

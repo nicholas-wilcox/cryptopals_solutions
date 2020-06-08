@@ -72,4 +72,28 @@ module Set5
 
     s.gets.chomp
   end
+
+  def challenge38(srv_port)
+    server = TCPServer.new(srv_port)
+    client = server.accept
+    trap('INT') do
+      client.close
+      break
+    end
+    salt = ''
+    client.gets.chomp # username
+    a_pub = client.gets.chomp.hex
+    client.puts Utils::HexString.from_bytes(salt.bytes)
+    client.puts Servers::SRPServer::G.to_s(16) # b_pub, where b = 1
+    client.puts 1.to_s(16) # u
+    key_hmac = client.gets.chomp
+    client.puts Servers::SRPServer::OK
+    client.close
+
+    IO.readlines('/usr/share/dict/words', chomp: true).find(-> { '' }) do |password|
+      v = Servers::SRPServer.modexp_n(Servers::SRPServer::G, Servers::SRPServer.hash(password).hex)
+      key = Servers::SRPServer.hash((a_pub * v) % Servers::SRPServer::N)
+      key_hmac == Servers::SRPServer.hmac(key, salt)
+    end
+  end
 end
