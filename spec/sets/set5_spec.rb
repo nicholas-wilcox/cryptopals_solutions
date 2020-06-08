@@ -50,17 +50,35 @@ RSpec.describe 'Set5' do
       mitm.shutdown
     end
 
-    it 'Challenge 35: Implement DH with negotiated groups, and break with malicious "g" parameters' do
-      (-1..1).each do |i|
+    context 'Challenge 35: Implement DH with negotiated groups, and break with malicious "g" parameters' do
+      mitm = nil
+      after(:example) { mitm.shutdown }
+
+      fake_g_mitm = lambda do |i|
         mitm = Set5.challenge35(8082, s_b.port, i)
         Thread.new { mitm.routine }
 
         s_a.start_session(mitm)
         s_a.send_message_to(mitm)
-        expect(s_b.message).to eq(plaintext)
-        expect(mitm.message).to eq(plaintext)
-        mitm.shutdown
-        s_b.message = ''
+        return mitm.message, s_b.message
+      end
+
+      it 'g = 0' do
+        mitm_message, b_message = fake_g_mitm.call(0)
+        expect(b_message).to eq(plaintext)
+        expect(mitm_message).to eq(plaintext)
+      end
+
+      it 'g = 1' do
+        mitm_message, b_message = fake_g_mitm.call(1)
+        expect(b_message).to eq(plaintext)
+        expect(mitm_message).to eq(plaintext)
+      end
+
+      it 'g = -1' do
+        mitm_message, b_message = fake_g_mitm.call(-1)
+        expect(b_message).to eq(plaintext)
+        expect(mitm_message).to eq(plaintext)
       end
     end
 
@@ -68,10 +86,10 @@ RSpec.describe 'Set5' do
     s_b.shutdown
   end
 
+  username = 'firstname.lastname@gmail.com'
+  password = 'password123'
+  
   context 'Secure Remote Protocal' do
-    username = 'firstname.lastname@gmail.com'
-    password = 'password123'
-
     srp_server = Servers::SRPServer.new(2000)
     srp_server.add_login(username, password)
     Thread.new { srp_server.routine }
@@ -82,6 +100,23 @@ RSpec.describe 'Set5' do
     
     it 'Challenge 37: Break SRP with a zero key' do
       expect(Set5.challenge37(srp_server.port, username)).to eq(Servers::SRPServer::OK)
+    end
+  end
+
+  context 'Challenge 38: Offline dictionary attack on simplified SRP' do
+    it 'Perform Simple SRP login' do
+      srp_server = Servers::SimpleSRPServer.new(2001)
+      srp_server.add_login(username, password)
+      Thread.new { srp_server.routine }
+      expect(Servers::SimpleSRPServer.login(srp_server.port, username, password)).to eq(Servers::SRPServer::OK)
+    end
+    
+    it 'MITM attack' do
+      password = IO.readlines('/usr/share/dict/words', chomp: true).sample
+      mitm_thread = Thread.new { Set5.challenge38(2002) }
+      sleep(1) # Allow time for MITM server to activate
+      Servers::SimpleSRPServer.login(2002, username, password)
+      expect(mitm_thread.value).to eq(password)
     end
   end
 

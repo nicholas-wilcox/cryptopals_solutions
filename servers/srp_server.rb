@@ -48,12 +48,13 @@ module Servers
       s.puts hmac(key, salt)
       s.gets.chomp
     end
-
+    
     attr_reader :port
 
     def initialize(port)
       @port = port
       @password_table = Hash.new
+      @server = TCPServer.new(port)
     end
 
     def add_login(username, password)
@@ -61,9 +62,8 @@ module Servers
     end
 
     def routine
-      server = TCPServer.new(@port)
       loop do
-        Thread.start(server.accept) do |client|
+        Thread.start(@server.accept) do |client|
           trap('INT') do
             client.close
             break
