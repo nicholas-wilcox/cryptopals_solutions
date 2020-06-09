@@ -120,4 +120,19 @@ RSpec.describe 'Set5' do
     end
   end
 
+  context 'RSA' do
+    plaintext = Random.bytes(rand(50..100))
+    s_a = Servers::RSAServer.new(8083, plaintext)
+    s_b = Servers::RSAServer.new(8084)
+    Thread.new { s_a.routine }
+    Thread.new { s_b.routine }
+
+    it 'performs RSA keygen and encryption' do
+      s_a.send_message_to(s_b)
+      expect(s_b.message).to eq(plaintext);
+    end
+
+    s_a.shutdown
+    s_b.shutdown
+  end
 end

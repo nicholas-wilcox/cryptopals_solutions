@@ -22,7 +22,7 @@ module Utils
     end
 
     def octets
-      extend(StringUtil).each_slice(2).map(&:hex)
+      dup.prepend(size.odd? ? '0' : '').extend(StringUtil).each_slice(2).map(&:hex)
     end
 
   end

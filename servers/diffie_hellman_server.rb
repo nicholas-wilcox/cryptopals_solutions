@@ -3,9 +3,10 @@ require 'net/http'
 require 'json'
 require_relative '../crypt_util'
 require_relative '../utils'
+require_relative './http_server'
 
 module Servers
-  class DiffieHellmanServer
+  class DiffieHellmanServer < HTTPServer
    
     # 1536-bit MODP group from https://www.ietf.org/rfc/rfc3526.txt
     P = ('ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd1' +
@@ -18,28 +19,15 @@ module Servers
          '670c354e4abc9804f1746c08ca237327ffffffffffffffff').hex
     G = 2
 
-    attr_reader :server
-    attr_accessor :port, :key_hash 
+    attr_accessor :key_hash 
 
     def initialize(port, message = '')
-      @port = port
+      super
       @session_key = nil
-      @message = message
 
       reset_group
       reset_keys
-      @server = WEBrick::HTTPServer.new({
-        Port: @port
-      })
       mount
-    end
-
-    def message
-      get_from('/message', @port).body
-    end
-
-    def message=(value)
-      post_text('/message', @port, value).body
     end
 
     def reset_group(p = P, g = G)
@@ -58,6 +46,7 @@ module Servers
     end
 
     def mount
+      super
       @server.mount_proc('/startSession') do |req|
         request = JSON.parse(req.body)
         ack = post_json('/negotiate', request['port'], { p: @p, g: @g })
@@ -79,42 +68,10 @@ module Servers
         res.body = @pub_key.to_s(16)
       end
 
-      @server.mount_proc('/message') do |req, res|
-        case req.request_method
-        when 'POST'
-          @message = req.body
-        when 'GET'
-          res.body = @message
-        end
-      end
-
       @server.mount_proc('/receiveMessage') { |req| @message = decrypt(req.body.extend(Utils::HexString).to_ascii) }
 
       @server.mount_proc('/sendMessage') do |req|
         post_text('/receiveMessage', JSON.parse(req.body)['port'], Utils::HexString.from_bytes(encrypt(@message).bytes))
-      end
-    end
-
-    def routine
-      trap('INT') { @server.shutdown }
-      @server.start
-    end
-
-    def post_text(endpoint, port, text)
-      Net::HTTP.start('localhost', port) do |http|
-        http.post(endpoint, text, { 'Content-Type': 'text/plain' })
-      end
-    end
-
-    def post_json(endpoint, port, obj)
-      Net::HTTP.start('localhost', port) do |http|
-        http.post(endpoint, obj.to_json, { 'Content-Type': 'application/json' })
-      end
-    end
-
-    def get_from(endpoint, port)
-      Net::HTTP.start('localhost', port) do |http|
-        http.get(endpoint)
       end
     end
 
@@ -133,10 +90,6 @@ module Servers
     
     def send_message_to(serv)
       post_json('/sendMessage', @port, { port: serv.port })
-    end
-
-    def shutdown
-      @server.shutdown
     end
   end
 end
