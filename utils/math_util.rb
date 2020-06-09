@@ -13,6 +13,10 @@ module Utils
       end[0]
     end
 
+    def invmod(a, m)
+      egcd(a, m)[0].modulo(m)
+    end
+
     def egcd(a, b)
       r0 = a
       r1 = b

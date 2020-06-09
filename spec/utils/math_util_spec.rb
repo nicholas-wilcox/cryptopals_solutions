@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'openssl'
 require_relative '../../utils'
 
 RSpec.describe Utils::MathUtil do
@@ -52,5 +53,11 @@ RSpec.describe Utils::MathUtil do
     it 'matches Integer.gcd when b = 0' do
       expect(egcd_gcd.call(a, 0)).to eq(a.gcd(0))
     end
+  end
+
+  it 'Computes modular inverses' do
+    p = OpenSSL::BN.generate_prime(32)
+    a = rand(1...p)
+    expect(Utils::MathUtil.invmod(a, p.to_i)).to eq(OpenSSL::BN.new(a).mod_inverse(p))
   end
 end
