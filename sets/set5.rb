@@ -48,7 +48,6 @@ module Set5
 
     mitm.server.mount_proc('/exchange') do |req, res|
       res.body = mitm.post_text('/exchange', port_b, pub_key.to_s(16)).body
-      p res.body
     end
 
     mitm.server.mount_proc('/receiveMessage') do |req|
