@@ -26,20 +26,25 @@ RSpec.describe 'Set5' do
 
   context 'Diffie Hellman' do
     plaintext = Random.bytes(rand(50..100))
-    s_a = Servers::DiffieHellmanServer.new(8080, plaintext)
-    s_b = Servers::DiffieHellmanServer.new(8081)
-    Thread.new { s_a.routine }
-    Thread.new { s_b.routine }
-
-    after(:example) { s_b.message = '' }
+    start_servers = lambda do
+      s_a = Servers::DiffieHellmanServer.new(8080, plaintext)
+      s_b = Servers::DiffieHellmanServer.new(8081)
+      Thread.new { s_a.routine }
+      Thread.new { s_b.routine }
+      [s_a, s_b]
+    end
+    shutdown_all = lambda { |*servers| servers.each(&:shutdown) }
 
     it 'performs Diffie-Hellman protocol' do
+      s_a, s_b = start_servers.call
       s_a.start_session(s_b)
       s_a.send_message_to(s_b)
       expect(s_b.message).to eq(plaintext);
+      shutdown_all.call(s_a, s_b)
     end
 
     it 'Challenge 34: Implement a MITM key-fixing attack on Diffie-Hellman with parameter injection' do
+      s_a, s_b = start_servers.call
       mitm = Set5.challenge34(8082, s_b.port)
       Thread.new { mitm.routine }
 
@@ -47,43 +52,29 @@ RSpec.describe 'Set5' do
       s_a.send_message_to(mitm)
       expect(s_b.message).to eq(plaintext)
       expect(mitm.message).to eq(plaintext)
-      mitm.shutdown
+      shutdown_all.call(s_a, s_b, mitm)
     end
 
-    context 'Challenge 35: Implement DH with negotiated groups, and break with malicious "g" parameters' do
-      mitm = nil
-      after(:example) { mitm.shutdown }
-
+    it 'Challenge 35: Implement DH with negotiated groups, and break with malicious "g" parameters' do
       fake_g_mitm = lambda do |i|
+        s_a, s_b = start_servers.call
         mitm = Set5.challenge35(8082, s_b.port, i)
         Thread.new { mitm.routine }
 
         s_a.start_session(mitm)
         s_a.send_message_to(mitm)
-        return mitm.message, s_b.message
+        b_message = s_b.message
+        mitm_message = mitm.message
+        shutdown_all.call(s_a, s_b, mitm)
+        [mitm_message, b_message]
       end
 
-      it 'g = 0' do
-        mitm_message, b_message = fake_g_mitm.call(0)
-        expect(b_message).to eq(plaintext)
-        expect(mitm_message).to eq(plaintext)
-      end
-
-      it 'g = 1' do
-        mitm_message, b_message = fake_g_mitm.call(1)
-        expect(b_message).to eq(plaintext)
-        expect(mitm_message).to eq(plaintext)
-      end
-
-      it 'g = -1' do
-        mitm_message, b_message = fake_g_mitm.call(-1)
+      (-1..1).each do |i|
+        mitm_message, b_message = fake_g_mitm.call(i)
         expect(b_message).to eq(plaintext)
         expect(mitm_message).to eq(plaintext)
       end
     end
-
-    s_a.shutdown
-    s_b.shutdown
   end
 
   username = 'firstname.lastname@gmail.com'
@@ -120,19 +111,28 @@ RSpec.describe 'Set5' do
     end
   end
 
-  context 'RSA' do
+  it 'Challenge 39: Implement RSA', :focus => true do
     plaintext = Random.bytes(rand(50..100))
-    s_a = Servers::RSAServer.new(8083, plaintext)
-    s_b = Servers::RSAServer.new(8084)
+    s_a = Servers::RSAServer.new(8080, plaintext)
+    s_b = Servers::RSAServer.new(8081)
     Thread.new { s_a.routine }
     Thread.new { s_b.routine }
 
-    it 'performs RSA keygen and encryption' do
-      s_a.send_message_to(s_b)
-      expect(s_b.message).to eq(plaintext);
-    end
+    s_a.send_message_to(s_b)
+    expect(s_b.message).to eq(plaintext);
 
     s_a.shutdown
     s_b.shutdown
+  end
+
+  it 'Challenge 40: Implement an E=3 RSA Broadcast attack', :focus => true do
+    plaintext = Random.bytes(rand(50...100))
+    generate_ciphertext_and_public_key = lambda do
+      p = OpenSSL::BN.generate_prime(bit_size).to_i
+      q = OpenSSL::BN.generate_prime(bit_size).to_i
+      n = p * q
+
+    end
+
   end
 end
