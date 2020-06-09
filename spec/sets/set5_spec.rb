@@ -77,10 +77,10 @@ RSpec.describe 'Set5' do
     end
   end
 
-  username = 'firstname.lastname@gmail.com'
-  password = 'password123'
-  
   context 'Secure Remote Protocal' do
+    username = 'firstname.lastname@gmail.com'
+    password = 'password123'
+  
     srp_server = Servers::SRPServer.new(2000)
     srp_server.add_login(username, password)
     Thread.new { srp_server.routine }
@@ -92,26 +92,24 @@ RSpec.describe 'Set5' do
     it 'Challenge 37: Break SRP with a zero key' do
       expect(Set5.challenge37(srp_server.port, username)).to eq(Servers::SRPServer::OK)
     end
-  end
-
-  context 'Challenge 38: Offline dictionary attack on simplified SRP' do
+    
     it 'Perform Simple SRP login' do
-      srp_server = Servers::SimpleSRPServer.new(2001)
-      srp_server.add_login(username, password)
-      Thread.new { srp_server.routine }
-      expect(Servers::SimpleSRPServer.login(srp_server.port, username, password)).to eq(Servers::SRPServer::OK)
+      simple_srp_server = Servers::SimpleSRPServer.new(2001)
+      simple_srp_server.add_login(username, password)
+      Thread.new { simple_srp_server.routine }
+      expect(Servers::SimpleSRPServer.login(simple_srp_server.port, username, password)).to eq(Servers::SRPServer::OK)
     end
     
-    it 'MITM attack' do
-      password = IO.readlines('/usr/share/dict/words', chomp: true).sample
+    it 'Challenge 38: Offline dictionary attack on simplified SRP' do
+      random_password = IO.readlines('/usr/share/dict/words', chomp: true).sample
       mitm_thread = Thread.new { Set5.challenge38(2002) }
       sleep(1) # Allow time for MITM server to activate
-      Servers::SimpleSRPServer.login(2002, username, password)
-      expect(mitm_thread.value).to eq(password)
+      Servers::SimpleSRPServer.login(2002, username, random_password)
+      expect(mitm_thread.value).to eq(random_password)
     end
   end
 
-  it 'Challenge 39: Implement RSA', :focus => true do
+  it 'Challenge 39: Implement RSA' do
     plaintext = Random.bytes(rand(50..100))
     s_a = Servers::RSAServer.new(8080, plaintext)
     s_b = Servers::RSAServer.new(8081)
@@ -125,7 +123,7 @@ RSpec.describe 'Set5' do
     s_b.shutdown
   end
 
-  it 'Challenge 40: Implement an E=3 RSA Broadcast attack', :focus => true do
+  it 'Challenge 40: Implement an E=3 RSA Broadcast attack' do
     plaintext = Random.bytes(rand(50...100))
     generate_ciphertext_and_public_key = lambda do
       p = OpenSSL::BN.generate_prime(bit_size).to_i
