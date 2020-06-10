@@ -95,4 +95,9 @@ module Set5
       key_hmac == Servers::SRPServer.hmac(key, salt)
     end
   end
+
+  def challenge40(c1, c2, c3)
+    x = Utils::MathUtil.crt(*[c1, c2, c3].map { |c| [c[:ciphertext], c[:public_key][:n]] }.transpose)
+    Math.cbrt(x).to_i.to_s(16).extend(Utils::HexString).to_ascii
+  end
 end

@@ -123,14 +123,19 @@ RSpec.describe 'Set5' do
     s_b.shutdown
   end
 
+  # A block size of 6 bytes and a key size of 512 bits is the best I can manage with Ruby's built in numeric functions
   it 'Challenge 40: Implement an E=3 RSA Broadcast attack' do
-    plaintext = Random.bytes(rand(50...100))
+    plaintext = Random.bytes(6)
     generate_ciphertext_and_public_key = lambda do
-      p = OpenSSL::BN.generate_prime(bit_size).to_i
-      q = OpenSSL::BN.generate_prime(bit_size).to_i
+      p = OpenSSL::BN.generate_prime(512).to_i
+      q = OpenSSL::BN.generate_prime(512).to_i
       n = p * q
-
+      {
+        ciphertext: Servers::RSAServer.encrypt(plaintext, 3, n),
+        public_key: { e: 3, n: n }
+      }
     end
 
+    expect(Set5.challenge40(*3.times.map { generate_ciphertext_and_public_key.call }.to_a)).to eq(plaintext)
   end
 end

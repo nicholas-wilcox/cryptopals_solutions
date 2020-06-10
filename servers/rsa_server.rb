@@ -18,7 +18,7 @@ module Servers
     def self.decrypt(ciphertext, d, n)
       Utils::MathUtil.modexp(ciphertext, d, n).to_s(16).extend(Utils::HexString).to_ascii
     end
-    
+
     def initialize(port, message = '')
       super
       reset_keys
