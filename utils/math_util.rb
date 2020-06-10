@@ -32,5 +32,11 @@ module Utils
       end
       [s0, t0]
     end
+
+    def crt(a, n)
+      n_s = n.map { |n_i| n.reject(&n_i.method(:==)).reduce(1, &:*) }
+      m = n_s.zip(n).map { |ary| invmod(*ary) }
+      a.zip(m, n_s).map { |ary| ary.reduce(1, &:*) }.sum.modulo(n.reduce(1, &:*))
+    end
   end
 end

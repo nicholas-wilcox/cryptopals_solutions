@@ -48,7 +48,6 @@ module Set5
 
     mitm.server.mount_proc('/exchange') do |req, res|
       res.body = mitm.post_text('/exchange', port_b, pub_key.to_s(16)).body
-      p res.body
     end
 
     mitm.server.mount_proc('/receiveMessage') do |req|
@@ -95,5 +94,10 @@ module Set5
       key = Servers::SRPServer.hash((a_pub * v) % Servers::SRPServer::N)
       key_hmac == Servers::SRPServer.hmac(key, salt)
     end
+  end
+
+  def challenge40(c1, c2, c3)
+    x = Utils::MathUtil.crt(*[c1, c2, c3].map { |c| [c[:ciphertext], c[:public_key][:n]] }.transpose)
+    Math.cbrt(x).to_i.to_s(16).extend(Utils::HexString).to_ascii
   end
 end
