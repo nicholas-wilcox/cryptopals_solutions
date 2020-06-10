@@ -60,4 +60,10 @@ RSpec.describe Utils::MathUtil do
     a = rand(1...p)
     expect(Utils::MathUtil.invmod(a, p.to_i)).to eq(OpenSSL::BN.new(a).mod_inverse(p))
   end
+
+  it 'Performs the Chinese Remainder Theorem' do
+    a = [0, 3, 4]
+    n = [3, 4, 5]
+    expect(Utils::MathUtil.crt(a, n)).to eq(39)
+  end
 end
