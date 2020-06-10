@@ -125,6 +125,7 @@ RSpec.describe 'Set5' do
   end
 
   # A block size of 6 bytes and a key size of 512 bits is the best I can manage with Ruby's built in numeric functions
+  # TODO: Investigate this
   it 'Challenge 40: Implement an E=3 RSA Broadcast attack' do
     plaintext = Random.bytes(6)
     generate_ciphertext_and_public_key = lambda do
