@@ -55,6 +55,7 @@ RSpec.describe 'Set5' do
       shutdown_all.call(s_a, s_b, mitm)
     end
 
+    # TODO: fix failure on `rspec --example Set5 --seed 8546 --fail-fast`
     it 'Challenge 35: Implement DH with negotiated groups, and break with malicious "g" parameters' do
       fake_g_mitm = lambda do |i|
         s_a, s_b = start_servers.call
