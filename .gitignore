@@ -3,3 +3,4 @@
 main.rb
 *.txt
 !spec/data/*.txt
+!set8_challenges/*.txt
